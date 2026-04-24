@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RAGHAY LITAAMIR BTP — Gestion Chantiers</title>
+<title>RAGHAY LITAAMIR BTP — Gestion Chantiers avec Contrôle Budgétaire</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rubik:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -516,7 +516,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
         </div>
       </form>
     </div>
-    <div class="login-footer">© 2026 RAGHAY LITAAMIR BTP · v1.0</div>
+    <div class="login-footer">© 2026 RAGHAY LITAAMIR BTP · v2.0</div>
     <div class="hazard-stripe"></div>
   </div>
 </div>
@@ -571,10 +571,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 <script>
 /* ============================================================
-   RAGHAY LITAAMIR BTP — Application Logic
+   RAGHAY LITAAMIR BTP — Application Logic (v2.0 avec contrôle budgétaire)
    ============================================================ */
 
-const STORAGE_KEY = 'raghay_litaamir_btp_v1';
+const STORAGE_KEY = 'raghay_litaamir_btp_v2';
 
 const DEFAULT_USERS = [
   { id: 1, username: 'admin',     password: 'admin123',    fullName: 'Super Administrateur', role: 'super_admin', active: true },
@@ -588,7 +588,7 @@ const ROLES = {
   super_admin:    { label: 'Super Admin',      modules: ['dashboard','chantiers','personnel','materiel','stock','planning','devis','securite','users'] },
   direction:      { label: 'Direction',        modules: ['dashboard','chantiers','personnel','materiel','stock','planning','devis','securite'] },
   chef_chantier:  { label: 'Chef de chantier', modules: ['dashboard','chantiers','personnel','materiel','planning','securite'] },
-  magasinier:     { label: 'Magasinier',       modules: ['dashboard','stock','materiel','devis'] },
+  magasinier:     { label: 'Magasinier',       modules: ['dashboard','stock','devis'] },  // Magasinier: plus de matériel, uniquement stock
   ouvrier:        { label: 'Ouvrier',          modules: ['dashboard','planning','securite'] }
 };
 
@@ -604,9 +604,16 @@ const MODULES_DEF = [
   { id: 'users',     label: 'Utilisateurs',      icon: '🔐' }
 ];
 
+// DONNÉES DE CONSOMMATION POUR CALCUL BUDGÉTAIRE
+let consommationData = {
+  heuresOuvrieres: [],  // { chantierId, matricule, heures, date, cout }
+  consommationCarburant: [], // { chantierId, enginId, litres, date, cout }
+  consommationMateriaux: [], // { chantierId, articleId, quantite, date, cout }
+};
+
 const SEED = {
   chantiers: [
-    { id: 1, code: 'CH-2026-001', nom: 'Résidence Al Manar - Casablanca', client: 'Groupe Addoha', adresse: 'Bd Zerktouni, Casablanca', gps: '33.5731,-7.5898', budget: 4500000, avancement: 65, dateDebut: '2026-01-15', dateFin: '2026-09-30', status: 'en_cours', chefChantier: 'Said Bennani' },
+    { id: 1, code: 'CH-2026-001', nom: 'Construction École Privée - Casablanca', client: 'Ministère Éducation', adresse: 'Bd Zerktouni, Casablanca', gps: '33.5731,-7.5898', budget: 100000, avancement: 35, dateDebut: '2026-01-15', dateFin: '2026-06-30', status: 'en_cours', chefChantier: 'Said Bennani' },
     { id: 2, code: 'CH-2026-002', nom: 'Villa Palmeraie - Marrakech',    client: 'Particulier - M. Tazi', adresse: 'Palmeraie, Marrakech', gps: '31.6295,-7.9811', budget: 2800000, avancement: 30, dateDebut: '2026-02-20', dateFin: '2026-11-15', status: 'en_cours', chefChantier: 'Loukrimi Hassan' },
     { id: 3, code: 'CH-2026-003', nom: 'Pont routier RN1 - Rabat',       client: 'Ministère Équipement', adresse: 'RN1 km 45, Rabat', gps: '34.0209,-6.8416', budget: 12000000, avancement: 10, dateDebut: '2026-03-01', dateFin: '2027-06-30', status: 'en_cours', chefChantier: 'Dahbi Youssef' },
     { id: 4, code: 'CH-2025-089', nom: 'Complexe commercial Anfa Place', client: 'AnfaPlace SA', adresse: 'Anfa, Casablanca', gps: '33.5838,-7.6420', budget: 8500000, avancement: 100, dateDebut: '2025-03-01', dateFin: '2025-12-15', status: 'termine', chefChantier: 'Said Bennani' }
@@ -621,11 +628,11 @@ const SEED = {
     { id: 7, matricule: 'LIT-007', nom: 'Mehdi Alaoui',     poste: 'Électricien',      telephone: '0667890123', qualification: 'Habilitation B2V', chantier: 2, tauxHoraire: 55, cin: 'BM789012', dateEmbauche: '2022-01-10' }
   ],
   materiel: [
-    { id: 1, code: 'ENG-001', nom: 'Pelle hydraulique CAT 320',   type: 'Engin TP',     marque: 'Caterpillar', numSerie: 'CAT320-2023-456', chantier: 3, status: 'operationnel', dateAcquisition: '2023-04-15', valeur: 850000, prochaineMaintenance: '2026-06-15' },
-    { id: 2, code: 'ENG-002', nom: 'Bétonnière 350L',            type: 'Bétonnage',    marque: 'Imer', numSerie: 'IMR-350-789', chantier: 1, status: 'operationnel', dateAcquisition: '2024-01-20', valeur: 45000, prochaineMaintenance: '2026-05-20' },
-    { id: 3, code: 'ENG-003', nom: 'Grue à tour Potain MDT 178', type: 'Levage',       marque: 'Potain', numSerie: 'PT-MDT178-2022-123', chantier: 1, status: 'operationnel', dateAcquisition: '2022-09-10', valeur: 2400000, prochaineMaintenance: '2026-05-10' },
-    { id: 4, code: 'ENG-004', nom: 'Compacteur Bomag BW 120',    type: 'Compactage',   marque: 'Bomag', numSerie: 'BMG-BW120-555', chantier: 3, status: 'maintenance', dateAcquisition: '2021-07-05', valeur: 380000, prochaineMaintenance: '2026-04-30' },
-    { id: 5, code: 'ENG-005', nom: 'Camion benne Renault 6x4',   type: 'Transport',    marque: 'Renault', numSerie: 'RNT-6x4-2024-888', chantier: 2, status: 'operationnel', dateAcquisition: '2024-03-01', valeur: 950000, prochaineMaintenance: '2026-08-01' }
+    { id: 1, code: 'ENG-001', nom: 'Pelle hydraulique CAT 320',   type: 'Engin TP',     marque: 'Caterpillar', numSerie: 'CAT320-2023-456', chantier: 3, status: 'operationnel', dateAcquisition: '2023-04-15', valeur: 850000, prochaineMaintenance: '2026-06-15', consoHoraire: 15, carburantParHeure: 15 },
+    { id: 2, code: 'ENG-002', nom: 'Bétonnière 350L',            type: 'Bétonnage',    marque: 'Imer', numSerie: 'IMR-350-789', chantier: 1, status: 'operationnel', dateAcquisition: '2024-01-20', valeur: 45000, prochaineMaintenance: '2026-05-20', consoHoraire: 2, carburantParHeure: 2 },
+    { id: 3, code: 'ENG-003', nom: 'Grue à tour Potain MDT 178', type: 'Levage',       marque: 'Potain', numSerie: 'PT-MDT178-2022-123', chantier: 1, status: 'operationnel', dateAcquisition: '2022-09-10', valeur: 2400000, prochaineMaintenance: '2026-05-10', consoHoraire: 5, carburantParHeure: 5 },
+    { id: 4, code: 'ENG-004', nom: 'Compacteur Bomag BW 120',    type: 'Compactage',   marque: 'Bomag', numSerie: 'BMG-BW120-555', chantier: 3, status: 'maintenance', dateAcquisition: '2021-07-05', valeur: 380000, prochaineMaintenance: '2026-04-30', consoHoraire: 12, carburantParHeure: 12 },
+    { id: 5, code: 'ENG-005', nom: 'Camion benne Renault 6x4',   type: 'Transport',    marque: 'Renault', numSerie: 'RNT-6x4-2024-888', chantier: 2, status: 'operationnel', dateAcquisition: '2024-03-01', valeur: 950000, prochaineMaintenance: '2026-08-01', consoHoraire: 25, carburantParHeure: 25 }
   ],
   stock: [
     { id: 1, code: 'MAT-CIM-001', designation: 'Ciment CPJ 45 (sac 50kg)', categorie: 'Liants', unite: 'sac', quantite: 450, seuilAlerte: 100, prixUnitaire: 85, fournisseur: 'LafargeHolcim', emplacement: 'Magasin A-01' },
@@ -655,6 +662,19 @@ const SEED = {
     { id: 2, type: 'distribution', date: '2026-04-10', beneficiaire: 'Brahim Chakir',  articles: 'Casque + Harnais + Gants',        chantier: 1, observations: 'Premier équipement' },
     { id: 3, type: 'incident',     date: '2026-04-15', beneficiaire: 'Amine Rachidi',  articles: 'Petite coupure main droite',      chantier: 3, observations: 'Premier soin sur place, arrêt 1 jour' },
     { id: 4, type: 'formation',    date: '2026-04-18', beneficiaire: 'Équipe chantier 1', articles: 'Sensibilisation travail en hauteur', chantier: 1, observations: '12 personnes formées - 2h' }
+  ],
+  // Données de consommation initiales (exemple pour le chantier école)
+  consoHeures: [
+    { id: 1, chantierId: 1, personnelId: 4, heures: 120, date: '2026-04-10', cout: 5400 },
+    { id: 2, chantierId: 1, personnelId: 6, heures: 95, date: '2026-04-10', cout: 3800 },
+  ],
+  consoCarburant: [
+    { id: 1, chantierId: 1, enginId: 2, litres: 45, date: '2026-04-15', cout: 675 },
+    { id: 2, chantierId: 1, enginId: 3, litres: 120, date: '2026-04-15', cout: 1800 },
+  ],
+  consoMateriaux: [
+    { id: 1, chantierId: 1, articleId: 1, quantite: 50, date: '2026-04-05', cout: 4250 },
+    { id: 2, chantierId: 1, articleId: 2, quantite: 30, date: '2026-04-05', cout: 2850 },
   ]
 };
 
@@ -665,7 +685,14 @@ let editingId = null;
 
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) { try { state = JSON.parse(raw); } catch(e) { state = initState(); } }
+  if (raw) { 
+    try { state = JSON.parse(raw); 
+      // Migration : ajouter les nouvelles collections si absentes
+      if (!state.consoHeures) state.consoHeures = [...SEED.consoHeures];
+      if (!state.consoCarburant) state.consoCarburant = [...SEED.consoCarburant];
+      if (!state.consoMateriaux) state.consoMateriaux = [...SEED.consoMateriaux];
+    } catch(e) { state = initState(); }
+  }
   else state = initState();
   if (!state.users) state.users = [...DEFAULT_USERS];
   if (!state.chantiers) state.chantiers = [...SEED.chantiers];
@@ -675,6 +702,9 @@ function loadState() {
   if (!state.planning) state.planning = [...SEED.planning];
   if (!state.devis) state.devis = [...SEED.devis];
   if (!state.securite) state.securite = [...SEED.securite];
+  if (!state.consoHeures) state.consoHeures = [...SEED.consoHeures];
+  if (!state.consoCarburant) state.consoCarburant = [...SEED.consoCarburant];
+  if (!state.consoMateriaux) state.consoMateriaux = [...SEED.consoMateriaux];
   saveState();
 }
 
@@ -684,11 +714,17 @@ function initState() {
     chantiers: [...SEED.chantiers], personnel: [...SEED.personnel],
     materiel: [...SEED.materiel], stock: [...SEED.stock],
     planning: [...SEED.planning], devis: [...SEED.devis],
-    securite: [...SEED.securite], theme: 'dark'
+    securite: [...SEED.securite], theme: 'dark',
+    consoHeures: [...SEED.consoHeures],
+    consoCarburant: [...SEED.consoCarburant],
+    consoMateriaux: [...SEED.consoMateriaux]
   };
 }
 
-function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) { toast('Erreur sauvegarde', 'error'); } }
+function saveState() { 
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } 
+  catch(e) { toast('Erreur sauvegarde', 'error'); } 
+}
 function nextId(list) { return list.length ? Math.max(...list.map(x => x.id)) + 1 : 1; }
 
 function toast(msg, type='success') {
@@ -732,7 +768,57 @@ function confirmAction(msg, cb) {
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
-/* AUTH */
+// ================== FONCTIONS DE CALCUL BUDGÉTAIRE ==================
+function calculerCoutReelChantier(chantierId) {
+  // 1. Coût de la main d'œuvre (heures)
+  const coutHROuvriers = state.consoHeures
+    .filter(c => c.chantierId === chantierId)
+    .reduce((sum, c) => sum + (c.cout || 0), 0);
+  
+  // 2. Coût du carburant
+  const coutCarburant = state.consoCarburant
+    .filter(c => c.chantierId === chantierId)
+    .reduce((sum, c) => sum + (c.cout || 0), 0);
+  
+  // 3. Coût des matériaux consommés (stock)
+  const coutMateriaux = state.consoMateriaux
+    .filter(c => c.chantierId === chantierId)
+    .reduce((sum, c) => sum + (c.cout || 0), 0);
+  
+  // 4. Coût du matériel (amortissement à 10% par an + entretien estimé)
+  const materielChantier = state.materiel.filter(m => m.chantier === chantierId && m.status === 'operationnel');
+  const coutMateriel = materielChantier.reduce((sum, m) => sum + (m.valeur * 0.1 / 12), 0); // amortissement mensuel simplifié
+  
+  return {
+    mainOeuvre: coutHROuvriers,
+    carburant: coutCarburant,
+    materiaux: coutMateriaux,
+    materiel: coutMateriel,
+    total: coutHROuvriers + coutCarburant + coutMateriaux + coutMateriel
+  };
+}
+
+function getBudgetStatus(chantier) {
+  const coutReel = calculerCoutReelChantier(chantier.id);
+  const budget = chantier.budget;
+  const pourcentage = (coutReel.total / budget) * 100;
+  let status = 'ok';
+  let message = '';
+  
+  if (pourcentage >= 95) {
+    status = 'danger';
+    message = `⚠️ ATTENTION : Le coût réel (${fmtMAD(coutReel.total)}) a atteint ${pourcentage.toFixed(1)}% du budget (${fmtMAD(budget)}). Action requise !`;
+  } else if (pourcentage >= 80) {
+    status = 'warning';
+    message = `⚠️ Alerte : ${pourcentage.toFixed(1)}% du budget consommé. Surveillance nécessaire.`;
+  } else {
+    message = `✅ Budget maîtrisé : ${pourcentage.toFixed(1)}% consommé.`;
+  }
+  
+  return { ...coutReel, pourcentage, status, message, budget };
+}
+
+// ================== AUTHENTIFICATION ==================
 document.getElementById('loginForm').addEventListener('submit', e => {
   e.preventDefault();
   const u = document.getElementById('loginUser').value.trim();
@@ -780,7 +866,11 @@ function logout() {
   });
 }
 
-function canAccess(moduleId) { return currentUser && ROLES[currentUser.role].modules.includes(moduleId); }
+function canAccess(moduleId) { 
+  return currentUser && ROLES[currentUser.role].modules.includes(moduleId); 
+}
+function canEditMateriel() { return ['super_admin','direction','chef_chantier'].includes(currentUser.role); } // magasinier exclu !
+function canEditStock() { return ['super_admin','direction','magasinier'].includes(currentUser.role); }
 
 /* NAV */
 function renderSidebar() {
@@ -851,6 +941,17 @@ function renderDashboard() {
   const incidents = state.securite.filter(s => s.type === 'incident').length;
   const today = new Date().toISOString().slice(0,10);
   const planifAujourdhui = state.planning.filter(p => p.dateDebut <= today && p.dateFin >= today);
+  
+  // Calcul des budgets consommés
+  let budgetTotal = 0;
+  let consommeTotal = 0;
+  let chantiersDepasses = 0;
+  chantiersActifs.forEach(c => {
+    const status = getBudgetStatus(c);
+    budgetTotal += c.budget;
+    consommeTotal += status.total;
+    if (status.pourcentage >= 95) chantiersDepasses++;
+  });
 
   const html = `
     <div class="page-header">
@@ -868,24 +969,28 @@ function renderDashboard() {
       <div class="kpi-card warning"><div class="kpi-icon">💰</div><div class="kpi-label">CA encaissé</div><div class="kpi-value" style="font-size:26px;">${fmtMAD(caTotal)}</div><div class="kpi-trend">${devisEnCours} facture(s) en attente</div></div>
       <div class="kpi-card"><div class="kpi-icon">📈</div><div class="kpi-label">Avancement moyen</div><div class="kpi-value">${avancementMoyen}%</div><div class="progress mt-2"><div class="progress-bar" style="width:${avancementMoyen}%"></div></div></div>
       <div class="kpi-card ${incidents > 0 ? 'warning' : 'success'}"><div class="kpi-icon">🦺</div><div class="kpi-label">Incidents sécurité</div><div class="kpi-value">${incidents}</div><div class="kpi-trend">cumul année</div></div>
-      <div class="kpi-card info"><div class="kpi-icon">📅</div><div class="kpi-label">Aujourd'hui</div><div class="kpi-value">${planifAujourdhui.length}</div><div class="kpi-trend">tâches planifiées</div></div>
+      <div class="kpi-card ${chantiersDepasses > 0 ? 'danger' : 'info'}"><div class="kpi-icon">⚠️</div><div class="kpi-label">Budget consommé</div><div class="kpi-value">${((consommeTotal/budgetTotal)*100).toFixed(0)}%</div><div class="kpi-trend">${chantiersDepasses} chantier(s) critique(s)</div></div>
     </div>
 
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
       <div class="card">
-        <div class="card-header"><div class="card-title">🏗️ Chantiers en cours</div></div>
+        <div class="card-header"><div class="card-title">🏗️ Chantiers avec suivi budgétaire</div></div>
         <div class="card-body">
           ${chantiersActifs.length === 0 ? '<div class="empty"><div class="empty-icon">🏗️</div><div>Aucun chantier actif</div></div>' :
-            chantiersActifs.map(c => `
+            chantiersActifs.map(c => {
+              const budgetStatus = getBudgetStatus(c);
+              const statusColor = budgetStatus.status === 'danger' ? 'danger' : (budgetStatus.status === 'warning' ? 'warning' : 'success');
+              return `
               <div style="padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; cursor:pointer;" onclick="navigate('chantiers')">
                 <div class="flex justify-between items-center mb-2">
                   <div class="font-bold">${escapeHtml(c.nom)}</div>
                   <span class="badge badge-accent">${c.avancement}%</span>
                 </div>
-                <div class="text-xs text-secondary mb-2">${escapeHtml(c.client)} · ${escapeHtml(c.chefChantier)}</div>
-                <div class="progress"><div class="progress-bar" style="width:${c.avancement}%"></div></div>
+                <div class="text-xs text-secondary mb-2">Budget: ${fmtMAD(c.budget)} | Consommé: ${fmtMAD(budgetStatus.total)} (${budgetStatus.pourcentage.toFixed(1)}%)</div>
+                <div class="progress"><div class="progress-bar" style="width:${Math.min(100, budgetStatus.pourcentage)}%; background: linear-gradient(90deg, ${budgetStatus.status === 'danger' ? '#EF4444' : (budgetStatus.status === 'warning' ? '#F59E0B' : '#10B981')}, var(--hazard));"></div></div>
+                <div class="text-xs ${statusColor === 'danger' ? 'text-danger' : (statusColor === 'warning' ? 'text-warning' : 'text-success')} mt-1">${budgetStatus.message}</div>
               </div>
-            `).join('')}
+            `}).join('')}
         </div>
       </div>
       <div class="card">
@@ -910,7 +1015,7 @@ function renderDashboard() {
     </div>
 
     <div class="card">
-      <div class="card-header"><div class="card-title">📊 Répartition budgétaire des chantiers</div></div>
+      <div class="card-header"><div class="card-title">📊 Répartition budgétaire des chantiers vs Coût réel</div></div>
       <div class="card-body" style="height: 280px; position: relative;"><canvas id="budgetChart"></canvas></div>
     </div>
   `;
@@ -919,20 +1024,29 @@ function renderDashboard() {
   setTimeout(() => {
     const ctx = document.getElementById('budgetChart');
     if (ctx && state.chantiers.length) {
+      const actifs = state.chantiers.filter(c => c.status === 'en_cours');
       new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: state.chantiers.map(c => c.nom.length > 25 ? c.nom.slice(0,25)+'…' : c.nom),
-          datasets: [{
-            label: 'Budget (MAD)',
-            data: state.chantiers.map(c => c.budget),
-            backgroundColor: state.chantiers.map(c => c.status === 'en_cours' ? '#FF6B00' : c.status === 'termine' ? '#10B981' : '#8B92A8'),
-            borderRadius: 6
-          }]
+          labels: actifs.map(c => c.nom.length > 25 ? c.nom.slice(0,25)+'…' : c.nom),
+          datasets: [
+            {
+              label: 'Budget (MAD)',
+              data: actifs.map(c => c.budget),
+              backgroundColor: '#3B82F6',
+              borderRadius: 6
+            },
+            {
+              label: 'Coût réel (MAD)',
+              data: actifs.map(c => calculerCoutReelChantier(c.id).total),
+              backgroundColor: '#FF6B00',
+              borderRadius: 6
+            }
+          ]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          plugins: { legend: { position: 'top' } },
           scales: { y: { ticks: { callback: v => (v/1000000).toFixed(1)+'M' } } }
         }
       });
@@ -940,7 +1054,7 @@ function renderDashboard() {
   }, 100);
 }
 
-/* CHANTIERS */
+/* CHANTIERS (avec affichage budget détaillé) */
 function renderChantiers() {
   const canEdit = ['super_admin','direction','chef_chantier'].includes(currentUser.role);
   document.getElementById('content').innerHTML = `
@@ -979,6 +1093,7 @@ function filterChantiers() {
   grid.innerHTML = items.map(c => {
     const statusMap = { en_cours: ['badge-warning','En cours'], termine: ['badge-success','Terminé'], en_attente: ['badge-neutral','En attente'] };
     const [cls, lbl] = statusMap[c.status] || ['badge-neutral', c.status];
+    const budgetStatus = c.status === 'en_cours' ? getBudgetStatus(c) : null;
     return `
       <div class="card" style="margin-bottom:0;">
         <div style="padding: 16px; border-bottom: 1px solid var(--border);">
@@ -994,10 +1109,17 @@ function filterChantiers() {
           <div class="text-xs text-muted mb-3">👷 ${escapeHtml(c.chefChantier)}</div>
           <div class="flex justify-between text-xs mb-1"><span>Avancement</span><strong>${c.avancement}%</strong></div>
           <div class="progress mb-3"><div class="progress-bar" style="width:${c.avancement}%"></div></div>
-          <div class="flex justify-between text-xs mb-3"><span class="text-muted">Budget</span><strong class="text-accent">${fmtMAD(c.budget)}</strong></div>
+          ${budgetStatus ? `
+          <div class="flex justify-between text-xs mb-1"><span>Budget / Coût réel</span><strong class="${budgetStatus.status==='danger'?'text-danger':(budgetStatus.status==='warning'?'text-warning':'text-success')}">${fmtMAD(c.budget)} / ${fmtMAD(budgetStatus.total)}</strong></div>
+          <div class="progress mb-3"><div class="progress-bar" style="width:${Math.min(100, budgetStatus.pourcentage)}%; background: ${budgetStatus.pourcentage>=95?'#EF4444':(budgetStatus.pourcentage>=80?'#F59E0B':'#10B981')};"></div></div>
+          <div class="text-xs mb-3 ${budgetStatus.status==='danger'?'text-danger':(budgetStatus.status==='warning'?'text-warning':'text-success')}">${budgetStatus.message}</div>
+          ` : `
+          <div class="flex justify-between text-xs mb-1"><span>Budget</span><strong class="text-accent">${fmtMAD(c.budget)}</strong></div>
+          `}
           <div class="flex justify-between text-xs mb-3"><span class="text-muted">${fmtDate(c.dateDebut)} → ${fmtDate(c.dateFin)}</span></div>
           <div style="display: flex; gap: 6px;">
             <button class="btn btn-secondary btn-sm" onclick="viewChantier(${c.id})" style="flex:1;">👁️ Détails</button>
+            ${canEdit ? `<button class="action-btn" onclick="openBudgetSuivi(${c.id})" title="Suivi budget">💰</button>` : ''}
             ${canEdit ? `<button class="action-btn" onclick="openChantierForm(${c.id})" title="Modifier">✏️</button>` : ''}
             ${currentUser.role === 'super_admin' ? `<button class="action-btn danger" onclick="deleteChantier(${c.id})" title="Supprimer">🗑️</button>` : ''}
           </div>
@@ -1005,6 +1127,312 @@ function filterChantiers() {
       </div>
     `;
   }).join('');
+}
+
+// Pop-up de suivi budgétaire (ajout de consommations)
+function openBudgetSuivi(chantierId) {
+  const chantier = state.chantiers.find(c => c.id === chantierId);
+  if (!chantier) return;
+  const budgetStatus = getBudgetStatus(chantier);
+  
+  const body = `
+    <div class="mb-4">
+      <h3 style="font-family: var(--font-display); font-size: 20px;">${escapeHtml(chantier.nom)}</h3>
+      <div class="flex justify-between mt-2">
+        <span>Budget: <strong class="text-accent">${fmtMAD(chantier.budget)}</strong></span>
+        <span>Dépenses: <strong class="${budgetStatus.pourcentage>=95?'text-danger':(budgetStatus.pourcentage>=80?'text-warning':'text-success')}">${fmtMAD(budgetStatus.total)}</strong></span>
+        <span>Solde: <strong class="${(chantier.budget - budgetStatus.total)<0?'text-danger':'text-success'}">${fmtMAD(chantier.budget - budgetStatus.total)}</strong></span>
+      </div>
+      <div class="progress mt-2"><div class="progress-bar" style="width:${Math.min(100, budgetStatus.pourcentage)}%; background: ${budgetStatus.pourcentage>=95?'#EF4444':(budgetStatus.pourcentage>=80?'#F59E0B':'#10B981')};"></div></div>
+      <div class="text-sm mt-2">${budgetStatus.message}</div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header"><div class="card-title">👷 Main d'œuvre</div></div>
+        <div class="card-body">
+          <div class="mb-3 font-bold">Total: ${fmtMAD(budgetStatus.mainOeuvre)}</div>
+          <button class="btn btn-secondary btn-sm w-full" onclick="openAjoutHeures(${chantierId})">➕ Ajouter heures</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header"><div class="card-title">⛽ Carburant</div></div>
+        <div class="card-body">
+          <div class="mb-3 font-bold">Total: ${fmtMAD(budgetStatus.carburant)}</div>
+          <button class="btn btn-secondary btn-sm w-full" onclick="openAjoutCarburant(${chantierId})">➕ Ajouter carburant</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header"><div class="card-title">📦 Matériaux</div></div>
+        <div class="card-body">
+          <div class="mb-3 font-bold">Total: ${fmtMAD(budgetStatus.materiaux)}</div>
+          <button class="btn btn-secondary btn-sm w-full" onclick="openAjoutMateriaux(${chantierId})">➕ Consommer stock</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header"><div class="card-title">🚜 Matériel (amortissement)</div></div>
+        <div class="card-body">
+          <div class="mb-3 font-bold">Total: ${fmtMAD(budgetStatus.materiel)}</div>
+          <div class="text-xs text-muted">Amortissement mensuel estimé à 10%/an</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-4">
+      <h4 class="font-bold mb-2">📋 Détail des consommations</h4>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Type</th><th>Détail</th><th>Montant</th></tr></thead>
+          <tbody>
+            ${state.consoHeures.filter(h => h.chantierId === chantierId).map(h => {
+              const pers = state.personnel.find(p => p.id === h.personnelId);
+              return `<tr><td>${fmtDate(h.date)}</td><td>👷 Heures</td><td>${pers ? pers.nom : ''} - ${h.heures}h</td><td class="text-accent">${fmtMAD(h.cout)}</td></tr>`;
+            }).join('')}
+            ${state.consoCarburant.filter(c => c.chantierId === chantierId).map(c => {
+              const eng = state.materiel.find(m => m.id === c.enginId);
+              return `<tr><td>${fmtDate(c.date)}</td><td>⛽ Carburant</td><td>${eng ? eng.nom : ''} - ${c.litres}L</td><td class="text-accent">${fmtMAD(c.cout)}</td></tr>`;
+            }).join('')}
+            ${state.consoMateriaux.filter(m => m.chantierId === chantierId).map(m => {
+              const art = state.stock.find(s => s.id === m.articleId);
+              return `<tr><td>${fmtDate(m.date)}</td><td>📦 Matériaux</td><td>${art ? art.designation : ''} - ${m.quantite} ${art ? art.unite : ''}</td><td class="text-accent">${fmtMAD(m.cout)}</td></tr>`;
+            }).join('')}
+            ${state.consoHeures.filter(h => h.chantierId === chantierId).length === 0 && 
+              state.consoCarburant.filter(c => c.chantierId === chantierId).length === 0 && 
+              state.consoMateriaux.filter(m => m.chantierId === chantierId).length === 0 ?
+              '<tr><td colspan="4" class="text-center text-muted">Aucune consommation enregistrée</td></tr>' : ''}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  
+  openModal(`Suivi budgétaire - ${chantier.code}`, body, `<button class="btn btn-secondary" onclick="closeModal()">Fermer</button>`, 'modal-xl');
+}
+
+function openAjoutHeures(chantierId) {
+  const personnelChantier = state.personnel.filter(p => p.chantier === chantierId || p.poste.includes('Chef'));
+  const body = `
+    <div class="form-group">
+      <label class="form-label">Employé</label>
+      <select class="form-control" id="ajout_personnel">
+        <option value="">-- Sélectionner --</option>
+        ${personnelChantier.map(p => `<option value="${p.id}" data-taux="${p.tauxHoraire}">${escapeHtml(p.nom)} (${fmtMAD(p.tauxHoraire)}/h)</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nombre d'heures</label><input type="number" id="ajout_heures" class="form-control" placeholder="Heures travaillées" step="0.5"></div>
+      <div class="form-group"><label class="form-label">Date</label><input type="date" id="ajout_date" class="form-control" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div id="ajout_heures_result" class="text-right mt-2 font-bold"></div>
+  `;
+  openModal('Ajouter des heures de main d\'œuvre', body,
+    `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+     <button class="btn btn-primary" onclick="saveAjoutHeures(${chantierId})">💾 Enregistrer</button>`, 'modal-lg');
+  
+  const persoSelect = document.getElementById('ajout_personnel');
+  const heuresInput = document.getElementById('ajout_heures');
+  const resultDiv = document.getElementById('ajout_heures_result');
+  
+  function updateResult() {
+    const sel = persoSelect.options[persoSelect.selectedIndex];
+    const taux = sel ? parseFloat(sel.dataset.taux) || 0 : 0;
+    const heures = parseFloat(heuresInput.value) || 0;
+    resultDiv.innerHTML = `Coût estimé: <span class="text-accent">${fmtMAD(taux * heures)}</span>`;
+  }
+  persoSelect.addEventListener('change', updateResult);
+  heuresInput.addEventListener('input', updateResult);
+}
+
+function saveAjoutHeures(chantierId) {
+  const personnelId = parseInt(document.getElementById('ajout_personnel').value);
+  const heures = parseFloat(document.getElementById('ajout_heures').value);
+  const date = document.getElementById('ajout_date').value;
+  
+  if (!personnelId || !heures || heures <= 0) {
+    toast('Veuillez sélectionner un employé et entrer des heures valides', 'error');
+    return;
+  }
+  
+  const personnel = state.personnel.find(p => p.id === personnelId);
+  if (!personnel) return;
+  
+  const cout = personnel.tauxHoraire * heures;
+  
+  state.consoHeures.push({
+    id: nextId(state.consoHeures),
+    chantierId: chantierId,
+    personnelId: personnelId,
+    heures: heures,
+    date: date,
+    cout: cout
+  });
+  
+  saveState();
+  closeModal();
+  toast(`Heures ajoutées: ${heures}h - ${fmtMAD(cout)}`);
+  
+  // Vérifier si budget dépassé
+  const chantier = state.chantiers.find(c => c.id === chantierId);
+  if (chantier) {
+    const status = getBudgetStatus(chantier);
+    if (status.pourcentage >= 95) {
+      toast(`⚠️ ATTENTION: Le budget du chantier ${chantier.code} est à ${status.pourcentage.toFixed(1)}% !`, 'warning');
+    }
+  }
+  
+  openBudgetSuivi(chantierId);
+}
+
+function openAjoutCarburant(chantierId) {
+  const enginsChantier = state.materiel.filter(m => m.chantier === chantierId && m.status === 'operationnel');
+  const body = `
+    <div class="form-group">
+      <label class="form-label">Engin</label>
+      <select class="form-control" id="ajout_engin">
+        <option value="">-- Sélectionner --</option>
+        ${enginsChantier.map(e => `<option value="${e.id}">${escapeHtml(e.nom)} (${escapeHtml(e.code)})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Litres consommés</label><input type="number" id="ajout_litres" class="form-control" placeholder="Litres" step="0.1"></div>
+      <div class="form-group"><label class="form-label">Date</label><input type="date" id="ajout_date_carb" class="form-control" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Prix au litre (MAD)</label><input type="number" id="ajout_prix_litre" class="form-control" value="15" step="0.5"></div>
+    <div id="ajout_carb_result" class="text-right mt-2 font-bold"></div>
+  `;
+  openModal('Ajouter consommation carburant', body,
+    `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+     <button class="btn btn-primary" onclick="saveAjoutCarburant(${chantierId})">💾 Enregistrer</button>`, 'modal-lg');
+  
+  const litresInput = document.getElementById('ajout_litres');
+  const prixInput = document.getElementById('ajout_prix_litre');
+  const resultDiv = document.getElementById('ajout_carb_result');
+  
+  function updateCarbResult() {
+    const litres = parseFloat(litresInput.value) || 0;
+    const prix = parseFloat(prixInput.value) || 0;
+    resultDiv.innerHTML = `Coût: <span class="text-accent">${fmtMAD(litres * prix)}</span>`;
+  }
+  litresInput.addEventListener('input', updateCarbResult);
+  prixInput.addEventListener('input', updateCarbResult);
+}
+
+function saveAjoutCarburant(chantierId) {
+  const enginId = parseInt(document.getElementById('ajout_engin').value);
+  const litres = parseFloat(document.getElementById('ajout_litres').value);
+  const date = document.getElementById('ajout_date_carb').value;
+  const prixLitre = parseFloat(document.getElementById('ajout_prix_litre').value) || 15;
+  
+  if (!enginId || !litres || litres <= 0) {
+    toast('Veuillez sélectionner un engin et entrer des litres valides', 'error');
+    return;
+  }
+  
+  const cout = litres * prixLitre;
+  
+  state.consoCarburant.push({
+    id: nextId(state.consoCarburant),
+    chantierId: chantierId,
+    enginId: enginId,
+    litres: litres,
+    date: date,
+    cout: cout
+  });
+  
+  saveState();
+  closeModal();
+  toast(`Carburant ajouté: ${litres}L - ${fmtMAD(cout)}`);
+  
+  const chantier = state.chantiers.find(c => c.id === chantierId);
+  if (chantier) {
+    const status = getBudgetStatus(chantier);
+    if (status.pourcentage >= 95) {
+      toast(`⚠️ ATTENTION: Le budget du chantier ${chantier.code} est à ${status.pourcentage.toFixed(1)}% !`, 'warning');
+    }
+  }
+  
+  openBudgetSuivi(chantierId);
+}
+
+function openAjoutMateriaux(chantierId) {
+  const stockDispo = state.stock.filter(s => s.quantite > 0);
+  const body = `
+    <div class="form-group">
+      <label class="form-label">Matériau</label>
+      <select class="form-control" id="ajout_article">
+        <option value="">-- Sélectionner --</option>
+        ${stockDispo.map(a => `<option value="${a.id}" data-prix="${a.prixUnitaire}" data-unite="${a.unite}">${escapeHtml(a.designation)} (Stock: ${a.quantite} ${a.unite})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Quantité</label><input type="number" id="ajout_qte_article" class="form-control" placeholder="Quantité" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Date</label><input type="date" id="ajout_date_mat" class="form-control" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div id="ajout_mat_result" class="text-right mt-2 font-bold"></div>
+  `;
+  openModal('Consommation de matériaux', body,
+    `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+     <button class="btn btn-primary" onclick="saveAjoutMateriaux(${chantierId})">💾 Enregistrer</button>`, 'modal-lg');
+  
+  const articleSelect = document.getElementById('ajout_article');
+  const qteInput = document.getElementById('ajout_qte_article');
+  const resultDiv = document.getElementById('ajout_mat_result');
+  
+  function updateMatResult() {
+    const sel = articleSelect.options[articleSelect.selectedIndex];
+    const prix = sel ? parseFloat(sel.dataset.prix) || 0 : 0;
+    const qte = parseFloat(qteInput.value) || 0;
+    resultDiv.innerHTML = `Coût: <span class="text-accent">${fmtMAD(prix * qte)}</span>`;
+  }
+  articleSelect.addEventListener('change', updateMatResult);
+  qteInput.addEventListener('input', updateMatResult);
+}
+
+function saveAjoutMateriaux(chantierId) {
+  const articleId = parseInt(document.getElementById('ajout_article').value);
+  const quantite = parseFloat(document.getElementById('ajout_qte_article').value);
+  const date = document.getElementById('ajout_date_mat').value;
+  
+  if (!articleId || !quantite || quantite <= 0) {
+    toast('Veuillez sélectionner un article et entrer une quantité valide', 'error');
+    return;
+  }
+  
+  const article = state.stock.find(s => s.id === articleId);
+  if (!article) return;
+  
+  if (quantite > article.quantite) {
+    toast(`Stock insuffisant: ${article.quantite} ${article.unite} disponible(s)`, 'error');
+    return;
+  }
+  
+  const cout = article.prixUnitaire * quantite;
+  
+  state.consoMateriaux.push({
+    id: nextId(state.consoMateriaux),
+    chantierId: chantierId,
+    articleId: articleId,
+    quantite: quantite,
+    date: date,
+    cout: cout
+  });
+  
+  // Mettre à jour le stock
+  article.quantite -= quantite;
+  
+  saveState();
+  closeModal();
+  toast(`Matériaux consommés: ${quantite} ${article.unite} - ${fmtMAD(cout)}`);
+  
+  const chantier = state.chantiers.find(c => c.id === chantierId);
+  if (chantier) {
+    const status = getBudgetStatus(chantier);
+    if (status.pourcentage >= 95) {
+      toast(`⚠️ ATTENTION: Le budget du chantier ${chantier.code} est à ${status.pourcentage.toFixed(1)}% !`, 'warning');
+    }
+  }
+  
+  openBudgetSuivi(chantierId);
 }
 
 function openChantierForm(id) {
@@ -1074,6 +1502,7 @@ function viewChantier(id) {
   const c = state.chantiers.find(x => x.id === id); if (!c) return;
   const persoCh = state.personnel.filter(p => p.chantier === id);
   const matCh = state.materiel.filter(m => m.chantier === id);
+  const budgetStatus = c.status === 'en_cours' ? getBudgetStatus(c) : null;
   const body = `
     <div class="flex justify-between mb-3">
       <div>
@@ -1089,6 +1518,26 @@ function viewChantier(id) {
       <div><div class="text-xs text-muted">💰 Budget</div><div class="text-accent font-bold">${fmtMAD(c.budget)}</div></div>
       <div><div class="text-xs text-muted">📅 Période</div><div>${fmtDate(c.dateDebut)} → ${fmtDate(c.dateFin)}</div></div>
     </div>
+    ${budgetStatus ? `
+    <div class="card mb-4" style="margin-bottom:16px;">
+      <div class="card-header"><div class="card-title">💰 Suivi budgétaire</div></div>
+      <div class="card-body">
+        <div class="flex justify-between mb-2">
+          <span>Dépenses totales: <strong class="${budgetStatus.pourcentage>=95?'text-danger':(budgetStatus.pourcentage>=80?'text-warning':'text-success')}">${fmtMAD(budgetStatus.total)}</strong></span>
+          <span>Solde restant: <strong class="${(c.budget - budgetStatus.total)<0?'text-danger':'text-success'}">${fmtMAD(c.budget - budgetStatus.total)}</strong></span>
+        </div>
+        <div class="progress mb-2"><div class="progress-bar" style="width:${Math.min(100, budgetStatus.pourcentage)}%; background: ${budgetStatus.pourcentage>=95?'#EF4444':(budgetStatus.pourcentage>=80?'#F59E0B':'#10B981')};"></div></div>
+        <div class="text-sm ${budgetStatus.status==='danger'?'text-danger':(budgetStatus.status==='warning'?'text-warning':'text-success')}">${budgetStatus.message}</div>
+        <div class="grid grid-cols-2 gap-2 mt-3 text-sm">
+          <div>👷 Main d'œuvre: ${fmtMAD(budgetStatus.mainOeuvre)}</div>
+          <div>⛽ Carburant: ${fmtMAD(budgetStatus.carburant)}</div>
+          <div>📦 Matériaux: ${fmtMAD(budgetStatus.materiaux)}</div>
+          <div>🚜 Amortissement: ${fmtMAD(budgetStatus.materiel)}</div>
+        </div>
+        <button class="btn btn-primary btn-sm mt-3" onclick="closeModal(); openBudgetSuivi(${c.id});">📊 Voir détails & ajouter consommations</button>
+      </div>
+    </div>
+    ` : ''}
     <h4 style="font-family: var(--font-display); letter-spacing: 1px; margin: 16px 0 8px;">Personnel affecté (${persoCh.length})</h4>
     ${persoCh.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Matricule</th><th>Nom</th><th>Poste</th></tr></thead>
       <tbody>${persoCh.map(p=>`<tr><td>${escapeHtml(p.matricule)}</td><td>${escapeHtml(p.nom)}</td><td>${escapeHtml(p.poste)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="text-muted text-sm">Aucun personnel affecté</div>'}
@@ -1097,10 +1546,10 @@ function viewChantier(id) {
       <tbody>${matCh.map(m=>`<tr><td>${escapeHtml(m.code)}</td><td>${escapeHtml(m.nom)}</td><td><span class="badge ${m.status==='operationnel'?'badge-success':'badge-warning'}">${m.status}</span></td></tr>`).join('')}</tbody></table></div>` : '<div class="text-muted text-sm">Aucun matériel affecté</div>'}
     ${c.gps ? `<div class="mt-4"><a href="https://www.google.com/maps?q=${c.gps}" target="_blank" class="btn btn-secondary btn-sm">🗺️ Voir sur Google Maps</a></div>` : ''}
   `;
-  openModal('Détails chantier', body, `<button class="btn btn-secondary" onclick="closeModal()">Fermer</button>`, 'modal-lg');
+  openModal('Détails chantier', body, `<button class="btn btn-secondary" onclick="closeModal()">Fermer</button>`, 'modal-xl');
 }
 
-/* PERSONNEL */
+/* PERSONNEL (inchangé mais conservé pour complétude) */
 function renderPersonnel() {
   const canEdit = ['super_admin','direction','chef_chantier'].includes(currentUser.role);
   document.getElementById('content').innerHTML = `
@@ -1199,9 +1648,9 @@ function deletePersonnel(id) {
   });
 }
 
-/* MATERIEL */
+/* MATERIEL (magasinier ne peut plus ajouter/modifier) */
 function renderMateriel() {
-  const canEdit = ['super_admin','direction','magasinier'].includes(currentUser.role);
+  const canEdit = canEditMateriel();
   document.getElementById('content').innerHTML = `
     <div class="page-header">
       <div>
@@ -1221,7 +1670,7 @@ function filterMateriel() {
   const items = state.materiel.filter(m =>
     !q || m.nom.toLowerCase().includes(q) || m.code.toLowerCase().includes(q) || (m.marque||'').toLowerCase().includes(q)
   );
-  const canEdit = ['super_admin','direction','magasinier'].includes(currentUser.role);
+  const canEdit = canEditMateriel();
   const grid = document.getElementById('matGrid');
   if (!items.length) { grid.innerHTML = `<div class="empty" style="grid-column: 1/-1"><div class="empty-icon">🚜</div><div class="empty-title">Aucun équipement</div></div>`; return; }
   grid.innerHTML = items.map(m => {
@@ -1254,6 +1703,7 @@ function filterMateriel() {
 }
 
 function openMaterielForm(id) {
+  if (!canEditMateriel()) { toast('Vous n\'avez pas les droits pour modifier le matériel', 'error'); return; }
   editingId = id || null;
   const m = id ? state.materiel.find(x => x.id === id) : { code: 'ENG-'+String(state.materiel.length+1).padStart(3,'0'), status: 'operationnel', dateAcquisition: new Date().toISOString().slice(0,10) };
   const body = `
@@ -1279,6 +1729,7 @@ function openMaterielForm(id) {
       <div class="form-group"><label class="form-label">Valeur (MAD)</label><input type="number" class="form-control" id="f_val" value="${m.valeur||0}"></div>
     </div>
     <div class="form-row">
+      <div class="form-group"><label class="form-label">Conso carburant (L/h)</label><input type="number" class="form-control" id="f_conso" value="${m.consoHoraire||0}" step="0.5"></div>
       <div class="form-group"><label class="form-label">Date acquisition</label><input type="date" class="form-control" id="f_da" value="${m.dateAcquisition||''}"></div>
       <div class="form-group"><label class="form-label">Prochaine maintenance</label><input type="date" class="form-control" id="f_pm" value="${m.prochaineMaintenance||''}"></div>
     </div>
@@ -1289,6 +1740,7 @@ function openMaterielForm(id) {
 }
 
 function saveMateriel() {
+  if (!canEditMateriel()) { toast('Action non autorisée', 'error'); return; }
   const data = {
     code: document.getElementById('f_code').value.trim(),
     nom: document.getElementById('f_nom').value.trim(),
@@ -1297,6 +1749,7 @@ function saveMateriel() {
     numSerie: document.getElementById('f_serie').value.trim(),
     chantier: parseInt(document.getElementById('f_ch').value) || null,
     valeur: parseFloat(document.getElementById('f_val').value) || 0,
+    consoHoraire: parseFloat(document.getElementById('f_conso').value) || 0,
     dateAcquisition: document.getElementById('f_da').value,
     prochaineMaintenance: document.getElementById('f_pm').value,
     status: document.getElementById('f_status').value
@@ -1308,6 +1761,7 @@ function saveMateriel() {
 }
 
 function deleteMateriel(id) {
+  if (!canEditMateriel() && currentUser.role !== 'super_admin') { toast('Action non autorisée', 'error'); return; }
   confirmAction('Supprimer cet engin ?', () => {
     state.materiel = state.materiel.filter(m => m.id !== id);
     saveState(); renderMateriel(); toast('Supprimé', 'warning');
@@ -1333,9 +1787,9 @@ function showQR(id) {
   setTimeout(() => new QRCode(document.getElementById('qrBox'), {text: payload, width: 220, height: 220, colorDark: '#1A1F2E', colorLight: '#fff'}), 100);
 }
 
-/* STOCK */
+/* STOCK (magasinier peut gérer) */
 function renderStock() {
-  const canEdit = ['super_admin','magasinier','direction'].includes(currentUser.role);
+  const canEdit = canEditStock();
   const alertCount = state.stock.filter(s => s.quantite <= s.seuilAlerte).length;
   const valeurTotale = state.stock.reduce((a,b) => a + b.quantite * b.prixUnitaire, 0);
   document.getElementById('content').innerHTML = `
@@ -1372,7 +1826,7 @@ function filterStock() {
     const matchA = !alerteOnly || s.quantite <= s.seuilAlerte;
     return matchQ && matchC && matchA;
   });
-  const canEdit = ['super_admin','magasinier','direction'].includes(currentUser.role);
+  const canEdit = canEditStock();
   const body = document.getElementById('stockBody');
   if (!items.length) { body.innerHTML = `<tr><td colspan="10" class="text-center text-muted" style="padding:40px;">Aucun article</td></tr>`; return; }
   body.innerHTML = items.map(s => {
@@ -1460,9 +1914,9 @@ function stockMove(id) {
       <div class="form-group"><label class="form-label">Quantité</label><input type="number" class="form-control" id="mv_qte" value="0" step="0.01"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Chantier</label><select class="form-control" id="mv_ch">
-        <option value="">--</option>
-        ${state.chantiers.map(c => `<option value="${c.id}">${escapeHtml(c.code)} · ${escapeHtml(c.nom)}</option>`).join('')}
+      <div class="form-group"><label class="form-label">Chantier destinataire</label><select class="form-control" id="mv_ch">
+        <option value="">-- Aucun (retour magasin) --</option>
+        ${state.chantiers.filter(c => c.status === 'en_cours').map(c => `<option value="${c.id}">${escapeHtml(c.code)} · ${escapeHtml(c.nom)}</option>`).join('')}
       </select></div>
       <div class="form-group"><label class="form-label">Motif / Bon N°</label><input class="form-control" id="mv_motif" placeholder="BL-123 / Consommation..."></div>
     </div>
@@ -1475,20 +1929,34 @@ function stockMove(id) {
 function applyStockMove(id) {
   const type = document.getElementById('mv_type').value;
   const qte = parseFloat(document.getElementById('mv_qte').value) || 0;
+  const chantierId = parseInt(document.getElementById('mv_ch').value) || null;
   if (qte <= 0) { toast('Quantité invalide', 'error'); return; }
   const s = state.stock.find(x => x.id === id);
-  if (type === 'entree') s.quantite += qte;
-  else {
+  if (type === 'entree') {
+    s.quantite += qte;
+    toast(`Entrée enregistrée — nouveau stock: ${fmt(s.quantite)}`);
+  } else {
     if (qte > s.quantite) { toast('Stock insuffisant', 'error'); return; }
     s.quantite -= qte;
+    // Enregistrer comme consommation si chantier spécifié
+    if (chantierId) {
+      state.consoMateriaux.push({
+        id: nextId(state.consoMateriaux),
+        chantierId: chantierId,
+        articleId: s.id,
+        quantite: qte,
+        date: new Date().toISOString().slice(0,10),
+        cout: s.prixUnitaire * qte
+      });
+      toast(`Consommation enregistrée pour le chantier — ${fmt(qte)} ${s.unite}`);
+    } else {
+      toast(`Sortie enregistrée — nouveau stock: ${fmt(s.quantite)}`);
+    }
   }
   saveState(); closeModal(); renderStock();
-  toast(`Mouvement ${type} enregistré — nouveau stock: ${fmt(s.quantite)}`);
 }
 
-/* PLANNING */
-let planningMonth = new Date();
-
+/* PLANNING, DEVIS, SECURITE, USERS (inchangés mais inclus pour complétude) */
 function renderPlanning() {
   const canEdit = ['super_admin','direction','chef_chantier'].includes(currentUser.role);
   document.getElementById('content').innerHTML = `
@@ -1521,8 +1989,8 @@ function renderPlanning() {
   drawPlanList();
 }
 
+let planningMonth = new Date();
 function changePlanningMonth(delta) { planningMonth.setMonth(planningMonth.getMonth() + delta); drawCalendar(); }
-
 function drawCalendar() {
   const y = planningMonth.getFullYear(); const m = planningMonth.getMonth();
   document.getElementById('calTitle').textContent = planningMonth.toLocaleDateString('fr-FR',{month:'long', year:'numeric'}).toUpperCase();
@@ -1531,16 +1999,13 @@ function drawCalendar() {
   const startWeekDay = (firstDay.getDay() + 6) % 7;
   const daysInMonth = lastDay.getDate();
   const daysPrev = new Date(y, m, 0).getDate();
-
   const days = ['LUN','MAR','MER','JEU','VEN','SAM','DIM'];
   let html = days.map(d => `<div class="calendar-day-name">${d}</div>`).join('');
   const today = new Date().toISOString().slice(0,10);
-
   for (let i = 0; i < startWeekDay; i++) {
     const dayNum = daysPrev - startWeekDay + i + 1;
     html += `<div class="calendar-cell other-month"><div class="calendar-num">${dayNum}</div></div>`;
   }
-
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const events = state.planning.filter(p => p.dateDebut <= dateStr && p.dateFin >= dateStr);
@@ -1551,13 +2016,11 @@ function drawCalendar() {
       ${events.length > 2 ? `<div class="calendar-event" style="background:var(--hazard);color:#000;">+${events.length-2}</div>` : ''}
     </div>`;
   }
-
   const total = startWeekDay + daysInMonth;
   const remaining = (7 - (total % 7)) % 7;
   for (let i = 1; i <= remaining; i++) html += `<div class="calendar-cell other-month"><div class="calendar-num">${i}</div></div>`;
   document.getElementById('calGrid').innerHTML = html;
 }
-
 function drawPlanList() {
   const today = new Date().toISOString().slice(0,10);
   const upcoming = state.planning.filter(p => p.dateFin >= today).sort((a,b) => a.dateDebut.localeCompare(b.dateDebut)).slice(0,8);
@@ -1575,7 +2038,6 @@ function drawPlanList() {
     </div>`;
   }).join('');
 }
-
 function showDayEvents(dateStr) {
   const events = state.planning.filter(p => p.dateDebut <= dateStr && p.dateFin >= dateStr);
   if (!events.length) return;
@@ -1590,7 +2052,6 @@ function showDayEvents(dateStr) {
   }).join('');
   openModal(`Tâches du ${fmtDate(dateStr)}`, body);
 }
-
 function openPlanningForm(id) {
   editingId = id || null;
   const p = id ? state.planning.find(x => x.id === id) : { status: 'planifie', dateDebut: new Date().toISOString().slice(0,10), dateFin: new Date().toISOString().slice(0,10) };
@@ -1613,7 +2074,6 @@ function openPlanningForm(id) {
     `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
      <button class="btn btn-primary" onclick="savePlanning()">💾 Enregistrer</button>`, 'modal-lg');
 }
-
 function savePlanning() {
   const data = {
     titre: document.getElementById('f_titre').value.trim(),
@@ -1629,7 +2089,6 @@ function savePlanning() {
   else { data.id = nextId(state.planning); state.planning.push(data); toast('Tâche planifiée'); }
   saveState(); closeModal(); renderPlanning();
 }
-
 function deletePlanning(id) {
   confirmAction('Supprimer cette tâche ?', () => {
     state.planning = state.planning.filter(p => p.id !== id);
@@ -1637,7 +2096,6 @@ function deletePlanning(id) {
   });
 }
 
-/* DEVIS / FACTURES */
 function renderDevis() {
   const canEdit = ['super_admin','direction','magasinier'].includes(currentUser.role);
   const caTotal = state.devis.filter(d => d.type==='facture' && d.status==='paye').reduce((a,b) => a + b.montantHT*(1+b.tva/100), 0);
@@ -1665,7 +2123,6 @@ function renderDevis() {
   `;
   filterDevis();
 }
-
 function filterDevis() {
   const q = (document.getElementById('devSearch')?.value || '').toLowerCase();
   const t = document.getElementById('devTypeFilter')?.value || '';
@@ -1697,11 +2154,12 @@ function filterDevis() {
     </tr>`;
   }).join('');
 }
-
+let devisLignes = [];
 function openDevisForm(id) {
   editingId = id || null;
   const d = id ? JSON.parse(JSON.stringify(state.devis.find(x => x.id === id))) :
     { type: 'devis', numero: 'DEV-'+new Date().getFullYear()+'-'+String(state.devis.length+1).padStart(3,'0'), date: new Date().toISOString().slice(0,10), tva: 20, status: 'brouillon', lignes: [] };
+  devisLignes = d.lignes || [];
   const body = `
     <div class="form-row">
       <div class="form-group"><label class="form-label">Numéro</label><input class="form-control" id="f_num" value="${escapeHtml(d.numero)}" required></div>
@@ -1726,7 +2184,7 @@ function openDevisForm(id) {
       </select></div>
     </div>
     <h4 style="font-family: var(--font-display); letter-spacing: 1px; margin: 16px 0 8px; display:flex; justify-content:space-between;">
-      Lignes <button class="btn btn-secondary btn-sm" onclick="addDevisLine()">➕ Ajouter ligne</button>
+      Lignes <button type="button" class="btn btn-secondary btn-sm" onclick="addDevisLine()">➕ Ajouter ligne</button>
     </h4>
     <div id="linesContainer"></div>
     <div class="form-group"><label class="form-label">TVA (%)</label><input type="number" class="form-control" id="f_tva" value="${d.tva||20}" style="max-width:150px;" oninput="updateDevisTotal()"></div>
@@ -1735,33 +2193,31 @@ function openDevisForm(id) {
   openModal(id ? 'Modifier document' : 'Nouveau document', body,
     `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
      <button class="btn btn-primary" onclick="saveDevis()">💾 Enregistrer</button>`, 'modal-xl');
-  window._devisLignes = d.lignes || [];
   drawDevisLines();
 }
-
 function drawDevisLines() {
   const cont = document.getElementById('linesContainer');
-  cont.innerHTML = window._devisLignes.map((l, idx) => `
+  if (!cont) return;
+  cont.innerHTML = devisLignes.map((l, idx) => `
     <div style="display: grid; grid-template-columns: 3fr 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center;">
       <input class="form-control" placeholder="Désignation" value="${escapeHtml(l.designation||'')}" oninput="updateDevisLine(${idx},'designation',this.value)">
       <input type="number" class="form-control" placeholder="Qté" value="${l.qte||1}" step="0.01" oninput="updateDevisLine(${idx},'qte',parseFloat(this.value)||0)">
       <input type="number" class="form-control" placeholder="PU" value="${l.pu||0}" step="0.01" oninput="updateDevisLine(${idx},'pu',parseFloat(this.value)||0)">
       <input class="form-control" readonly value="${fmtMAD((l.qte||0)*(l.pu||0))}">
-      <button class="action-btn danger" onclick="removeDevisLine(${idx})">🗑️</button>
+      <button type="button" class="action-btn danger" onclick="removeDevisLine(${idx})">🗑️</button>
     </div>
   `).join('');
   updateDevisTotal();
 }
-
-function addDevisLine() { window._devisLignes.push({designation:'', qte:1, pu:0, total:0}); drawDevisLines(); }
-function removeDevisLine(idx) { window._devisLignes.splice(idx,1); drawDevisLines(); }
+function addDevisLine() { devisLignes.push({designation:'', qte:1, pu:0, total:0}); drawDevisLines(); }
+function removeDevisLine(idx) { devisLignes.splice(idx,1); drawDevisLines(); }
 function updateDevisLine(idx, key, val) {
-  window._devisLignes[idx][key] = val;
-  window._devisLignes[idx].total = (window._devisLignes[idx].qte||0)*(window._devisLignes[idx].pu||0);
+  devisLignes[idx][key] = val;
+  devisLignes[idx].total = (devisLignes[idx].qte||0)*(devisLignes[idx].pu||0);
   updateDevisTotal();
 }
 function updateDevisTotal() {
-  const ht = (window._devisLignes||[]).reduce((a,b)=>a+(b.qte||0)*(b.pu||0),0);
+  const ht = (devisLignes||[]).reduce((a,b)=>a+(b.qte||0)*(b.pu||0),0);
   const tva = parseFloat(document.getElementById('f_tva')?.value)||0;
   const ttc = ht*(1+tva/100);
   const el = document.getElementById('totalDisplay');
@@ -1771,9 +2227,8 @@ function updateDevisTotal() {
     <div style="font-size:16px;">TTC : <strong class="text-accent">${fmtMAD(ttc)}</strong></div>
   `;
 }
-
 function saveDevis() {
-  const ht = window._devisLignes.reduce((a,b)=>a+(b.qte||0)*(b.pu||0),0);
+  const ht = devisLignes.reduce((a,b)=>a+(b.qte||0)*(b.pu||0),0);
   const data = {
     numero: document.getElementById('f_num').value.trim(),
     type: document.getElementById('f_type').value,
@@ -1782,7 +2237,7 @@ function saveDevis() {
     chantier: parseInt(document.getElementById('f_ch').value) || null,
     status: document.getElementById('f_status').value,
     tva: parseFloat(document.getElementById('f_tva').value)||0,
-    lignes: window._devisLignes.filter(l=>l.designation),
+    lignes: devisLignes.filter(l=>l.designation),
     montantHT: ht
   };
   if (!data.numero || !data.client) { toast('Numéro et client obligatoires', 'error'); return; }
@@ -1790,14 +2245,12 @@ function saveDevis() {
   else { data.id = nextId(state.devis); state.devis.push(data); toast('Document créé'); }
   saveState(); closeModal(); renderDevis();
 }
-
 function deleteDevis(id) {
   confirmAction('Supprimer ce document ?', () => {
     state.devis = state.devis.filter(d => d.id !== id);
     saveState(); renderDevis(); toast('Supprimé', 'warning');
   });
 }
-
 function printDevis(id) {
   const d = state.devis.find(x => x.id === id); if (!d) return;
   const ch = state.chantiers.find(c => c.id === d.chantier);
@@ -1850,7 +2303,7 @@ function printDevis(id) {
       </div>
       <table>
         <thead><tr><th style="width:50%">Désignation</th><th style="width:12%">Qté</th><th style="width:19%">Prix Unit.</th><th style="width:19%">Total HT</th></tr></thead>
-        <tbody>${d.lignes.map(l => `<tr><td>${escapeHtml(l.designation)}</td><td>${fmt(l.qte)}</td><td>${fmtMAD(l.pu)}</td><td>${fmtMAD(l.qte*l.pu)}</td></tr>`).join('')}</tbody>
+        <tbody>${d.lignes.map(l => `<tr><td>${escapeHtml(l.designation)}</td><td>${fmt(l.qte)}</td><td>${fmtMAD(l.pu)}</td><td>${fmtMAD(l.qte*l.pu)}</td>`).join('')}</tbody>
       </table>
       <div class="tot">
         <div>Total HT : ${fmtMAD(d.montantHT)}</div>
@@ -1873,7 +2326,6 @@ function printDevis(id) {
   w.document.close();
 }
 
-/* SÉCURITÉ */
 function renderSecurite() {
   const canEdit = ['super_admin','direction','chef_chantier'].includes(currentUser.role);
   const incidents = state.securite.filter(s => s.type === 'incident').length;
@@ -1902,13 +2354,12 @@ function renderSecurite() {
       </select>
     </div>
     <div class="card"><div class="table-wrap"><table class="data-table">
-      <thead><tr><th>Date</th><th>Type</th><th>Bénéficiaire</th><th>Articles/Objet</th><th>Chantier</th><th>Observations</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th>Type</th><th>Bénéficiaire</th><th>Articles/Objet</th><th>Chantier</th><th>Observations</th><th></th> </thead>
       <tbody id="secBody"></tbody>
     </table></div></div>
   `;
   filterSecurite();
 }
-
 function filterSecurite() {
   const q = (document.getElementById('secSearch')?.value || '').toLowerCase();
   const t = document.getElementById('secTypeFilter')?.value || '';
@@ -1936,7 +2387,6 @@ function filterSecurite() {
     </tr>`;
   }).join('');
 }
-
 function openSecuriteForm(id) {
   editingId = id || null;
   const s = id ? state.securite.find(x => x.id === id) : { type: 'distribution', date: new Date().toISOString().slice(0,10) };
@@ -1961,7 +2411,6 @@ function openSecuriteForm(id) {
     `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
      <button class="btn btn-primary" onclick="saveSecurite()">💾 Enregistrer</button>`, 'modal-lg');
 }
-
 function saveSecurite() {
   const data = {
     type: document.getElementById('f_type').value,
@@ -1976,15 +2425,12 @@ function saveSecurite() {
   else { data.id = nextId(state.securite); state.securite.push(data); toast('Enregistré'); }
   saveState(); closeModal(); renderSecurite();
 }
-
 function deleteSecurite(id) {
   confirmAction('Supprimer cet enregistrement ?', () => {
     state.securite = state.securite.filter(s => s.id !== id);
     saveState(); renderSecurite(); toast('Supprimé', 'warning');
   });
 }
-
-/* USERS */
 function renderUsers() {
   if (currentUser.role !== 'super_admin') {
     document.getElementById('content').innerHTML = `<div class="empty"><div class="empty-icon">🔒</div><div class="empty-title">Accès réservé Super Admin</div></div>`;
@@ -1999,7 +2445,7 @@ function renderUsers() {
       <button class="btn btn-primary" onclick="openUserForm()">➕ Nouvel utilisateur</button>
     </div>
     <div class="card"><div class="table-wrap"><table class="data-table">
-      <thead><tr><th>Identifiant</th><th>Nom complet</th><th>Rôle</th><th>Modules</th><th>Statut</th><th></th></tr></thead>
+      <thead><tr><th>Identifiant</th><th>Nom complet</th><th>Rôle</th><th>Modules</th><th>Statut</th><th></th> </thead>
       <tbody>
       ${state.users.map(u => `<tr>
         <td class="font-mono font-bold">${escapeHtml(u.username)}</td>
@@ -2017,7 +2463,6 @@ function renderUsers() {
     </table></div></div>
   `;
 }
-
 function openUserForm(id) {
   editingId = id || null;
   const u = id ? state.users.find(x => x.id === id) : { role: 'ouvrier', active: true };
@@ -2036,7 +2481,6 @@ function openUserForm(id) {
     `<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
      <button class="btn btn-primary" onclick="saveUser()">💾 Enregistrer</button>`);
 }
-
 function saveUser() {
   const data = {
     username: document.getElementById('f_user').value.trim(),
@@ -2061,7 +2505,6 @@ function saveUser() {
   }
   saveState(); closeModal(); renderUsers();
 }
-
 function toggleUser(id) {
   if (id === currentUser.id) { toast('Impossible de désactiver votre propre compte', 'error'); return; }
   const u = state.users.find(x => x.id === id);
@@ -2069,7 +2512,6 @@ function toggleUser(id) {
   saveState(); renderUsers();
   toast(`Compte ${u.active?'activé':'désactivé'}`);
 }
-
 function deleteUser(id) {
   if (id === 1) { toast('Impossible de supprimer le Super Admin principal', 'error'); return; }
   if (id === currentUser.id) { toast('Impossible de supprimer votre propre compte', 'error'); return; }
@@ -2078,11 +2520,9 @@ function deleteUser(id) {
     saveState(); renderUsers(); toast('Utilisateur supprimé', 'warning');
   });
 }
-
-/* EXPORT */
 function exportAll() {
   try {
-    const payload = { ...state, exportedAt: new Date().toISOString(), version: '1.0' };
+    const payload = { ...state, exportedAt: new Date().toISOString(), version: '2.0' };
     const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2093,23 +2533,14 @@ function exportAll() {
     toast('Sauvegarde exportée');
   } catch(e) { toast('Erreur export', 'error'); }
 }
-
-/* INIT */
 function init() {
   loadState();
   setTheme(state.theme || 'dark');
   tryAutoLogin();
 }
-
 init();
-
-document.getElementById('modalOverlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeModal();
-});
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModal();
-});
+document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 </script>
 </body>
 </html>
