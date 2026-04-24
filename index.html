@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RAGHAY LITAAMIR BTP — Gestion Chantiers avec Firebase</title>
+<title>RAGHAY LITAAMIR BTP — Gestion Chantiers avec Firestore</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rubik:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -11,12 +11,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
-<!-- Firebase SDKs -->
+<!-- Firebase SDKs pour Firestore -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-analytics.js";
-  import { getDatabase, ref, set, get, child, update, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+  import { getFirestore, collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 
   // Firebase configuration
   const firebaseConfig = {
@@ -26,28 +26,29 @@
     storageBucket: "raghay-litaamir.firebasestorage.app",
     messagingSenderId: "931657612725",
     appId: "1:931657612725:web:01e01c66299353f1752dfc",
-    measurementId: "G-YMBZ8FZ1QJ",
-    databaseURL: "https://raghay-litaamir-default-rtdb.firebaseio.com/"
+    measurementId: "G-YMBZ8FZ1QJ"
   };
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
-  const db = getDatabase(app);
+  const db = getFirestore(app);
   const auth = getAuth(app);
 
   // Expose Firebase services globally
-  window.firebaseDB = db;
+  window.firestore = db;
   window.firebaseAuth = auth;
-  window.firebaseRef = ref;
-  window.firebaseGet = get;
-  window.firebaseSet = set;
-  window.firebaseUpdate = update;
-  window.firebaseRemove = remove;
-  window.firebaseOnValue = onValue;
-  window.firebaseChild = child;
+  window.firestoreCollection = collection;
+  window.firestoreDoc = doc;
+  window.firestoreGetDocs = getDocs;
+  window.firestoreGetDoc = getDoc;
+  window.firestoreSetDoc = setDoc;
+  window.firestoreUpdateDoc = updateDoc;
+  window.firestoreDeleteDoc = deleteDoc;
+  window.firestoreQuery = query;
+  window.firestoreWhere = where;
+  window.firestoreOnSnapshot = onSnapshot;
   window.firebaseSignIn = signInWithEmailAndPassword;
-  window.firebaseCreateUser = createUserWithEmailAndPassword;
   window.firebaseSignOut = signOut;
   window.firebaseOnAuthStateChanged = onAuthStateChanged;
 
@@ -445,47 +446,6 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .toast-icon { font-size: 20px; }
 @keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-/* CALENDAR */
-.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.calendar-day-name { text-align: center; font-size: 10px; letter-spacing: 1.5px; color: var(--text-muted); font-weight: 700; padding: 8px 0; text-transform: uppercase; }
-.calendar-cell {
-  aspect-ratio: 1;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 6px;
-  cursor: pointer;
-  transition: all var(--transition);
-  display: flex; flex-direction: column;
-  font-size: 12px;
-  min-height: 60px;
-  position: relative;
-}
-.calendar-cell:hover { border-color: var(--accent); background: var(--bg-elevated); }
-.calendar-cell.other-month { opacity: 0.3; }
-.calendar-cell.today { border-color: var(--accent); background: rgba(255,107,0,0.1); }
-.calendar-cell.has-event { border-color: var(--hazard); }
-.calendar-num { font-weight: 700; font-size: 13px; }
-.calendar-event { margin-top: 2px; font-size: 9px; background: var(--accent); color: #fff; padding: 1px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* UTILITIES */
-.flex { display: flex; } .flex-col { flex-direction: column; }
-.items-center { align-items: center; } .justify-between { justify-content: space-between; }
-.gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
-.mb-1 { margin-bottom: 4px; } .mb-2 { margin-bottom: 8px; } .mb-3 { margin-bottom: 12px; } .mb-4 { margin-bottom: 16px; }
-.mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; }
-.text-center { text-align: center; } .text-right { text-align: right; }
-.text-sm { font-size: 12px; } .text-xs { font-size: 11px; }
-.text-muted { color: var(--text-muted); } .text-secondary { color: var(--text-secondary); }
-.text-accent { color: var(--accent); } .text-success { color: var(--success); }
-.text-danger { color: var(--danger); } .text-warning { color: var(--warning); }
-.font-bold { font-weight: 700; } .font-mono { font-family: var(--font-mono); }
-.w-full { width: 100%; } .hidden { display: none !important; }
-
-/* QR */
-.qr-display { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px; background: #fff; border-radius: var(--radius); }
-.qr-display > div { padding: 8px; background: #fff; }
-
 /* KPI */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .kpi-card {
@@ -549,4 +509,492 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     <div class="login-body">
       <form id="loginForm">
         <div class="form-group">
-          <label
+          <label class="form-label">Email</label>
+          <input type="email" id="loginEmail" class="form-control" placeholder="ex: admin@raghay.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe</label>
+          <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">🔓 CONNEXION AVEC FIRESTORE</button>
+        <div class="login-hint">
+          <strong>⚠️ Authentification Firebase :</strong><br>
+          Contactez l'administrateur pour créer votre compte.<br>
+          <span id="syncStatusMsg" style="color: var(--accent);">🔄 Connexion à Firestore en cours...</span>
+        </div>
+      </form>
+    </div>
+    <div class="login-footer">© 2026 RAGHAY LITAAMIR BTP · v2.0 · Synchronisé avec Firestore ☁️</div>
+    <div class="hazard-stripe"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🏗️</div>
+      <div>
+        <div class="sidebar-brand">RAGHAY LITAAMIR<small>· BTP ·</small></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">—</div>
+          <div class="user-role" id="userRole">—</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn mobile-toggle" onclick="window.toggleSidebar?.()">☰</button>
+      <div class="topbar-title" id="topbarTitle">DASHBOARD</div>
+      <div class="topbar-actions">
+        <span class="sync-status" id="syncStatus">☁️ Firestore</span>
+        <button class="icon-btn" id="themeToggle" title="Changer thème">🌙</button>
+        <button class="icon-btn" onclick="window.exportAll?.()" title="Exporter données">💾</button>
+        <button class="icon-btn" onclick="window.logout?.()" title="Déconnexion">🚪</button>
+      </div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitle">Modal</h3>
+      <button class="modal-close" onclick="window.closeModal?.()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   RAGHAY LITAAMIR BTP — Firestore Integration
+   ============================================================ */
+
+let firebaseReady = false;
+let db, auth, collection, docRef, getDocs, getDoc, setDoc, updateDoc, deleteDoc;
+
+// Données par défaut
+const DEFAULT_DATA = {
+  chantiers: [
+    { id: "1", code: 'CH-2026-001', nom: 'Construction École Privée - Casablanca', client: 'Ministère Éducation', adresse: 'Bd Zerktouni, Casablanca', gps: '33.5731,-7.5898', budget: 100000, avancement: 35, dateDebut: '2026-01-15', dateFin: '2026-06-30', status: 'en_cours', chefChantier: 'Said Bennani' },
+    { id: "2", code: 'CH-2026-002', nom: 'Villa Palmeraie - Marrakech', client: 'Particulier - M. Tazi', adresse: 'Palmeraie, Marrakech', gps: '31.6295,-7.9811', budget: 2800000, avancement: 30, dateDebut: '2026-02-20', dateFin: '2026-11-15', status: 'en_cours', chefChantier: 'Loukrimi Hassan' },
+    { id: "3", code: 'CH-2026-003', nom: 'Pont routier RN1 - Rabat', client: 'Ministère Équipement', adresse: 'RN1 km 45, Rabat', gps: '34.0209,-6.8416', budget: 12000000, avancement: 10, dateDebut: '2026-03-01', dateFin: '2027-06-30', status: 'en_cours', chefChantier: 'Dahbi Youssef' }
+  ],
+  personnel: [
+    { id: "1", matricule: 'LIT-001', nom: 'Said Bennani', poste: 'Chef de chantier', telephone: '0661234567', chantier: "1", tauxHoraire: 85 },
+    { id: "2", matricule: 'LIT-002', nom: 'Loukrimi Hassan', poste: 'Chef de chantier', telephone: '0662345678', chantier: "2", tauxHoraire: 80 },
+    { id: "3", matricule: 'LIT-003', nom: 'Dahbi Youssef', poste: 'Chef de chantier', telephone: '0663456789', chantier: "3", tauxHoraire: 90 },
+    { id: "4", matricule: 'LIT-004', nom: 'Oumjoud Karim', poste: 'Maçon qualifié', telephone: '0664567890', chantier: "1", tauxHoraire: 45 },
+    { id: "5", matricule: 'LIT-005', nom: 'Amine Rachidi', poste: 'Conducteur engin', telephone: '0665678901', chantier: "3", tauxHoraire: 60 }
+  ],
+  materiel: [
+    { id: "1", code: 'ENG-001', nom: 'Pelle hydraulique CAT 320', type: 'Engin TP', chantier: "3", status: 'operationnel', valeur: 850000 },
+    { id: "2", code: 'ENG-002', nom: 'Bétonnière 350L', type: 'Bétonnage', chantier: "1", status: 'operationnel', valeur: 45000 }
+  ],
+  stock: [
+    { id: "1", code: 'MAT-CIM-001', designation: 'Ciment CPJ 45 (sac 50kg)', categorie: 'Liants', unite: 'sac', quantite: 450, seuilAlerte: 100, prixUnitaire: 85 },
+    { id: "2", code: 'MAT-FER-001', designation: 'Fer à béton Ø12', categorie: 'Aciers', unite: 'barre', quantite: 280, seuilAlerte: 50, prixUnitaire: 95 }
+  ],
+  consoHeures: [],
+  consoCarburant: [],
+  consoMateriaux: []
+};
+
+let appState = {
+  chantiers: [],
+  personnel: [],
+  materiel: [],
+  stock: [],
+  consoHeures: [],
+  consoCarburant: [],
+  consoMateriaux: []
+};
+
+let currentUser = null;
+let currentModule = 'dashboard';
+let editingId = null;
+
+// Utilitaires
+function fmt(n) { return new Intl.NumberFormat('fr-FR').format(n || 0); }
+function fmtMAD(n) { return fmt(n) + ' MAD'; }
+function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('fr-FR'); }
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function toast(msg, type='success') {
+  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(120%)'; }, 3000);
+  setTimeout(() => el.remove(), 3400);
+}
+function openModal(title, bodyHtml, footerHtml, size='') {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  document.getElementById('modalFooter').innerHTML = footerHtml || `<button class="btn btn-secondary" onclick="window.closeModal()">Fermer</button>`;
+  const m = document.getElementById('modal');
+  m.classList.remove('modal-lg','modal-xl');
+  if (size) m.classList.add(size);
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); editingId = null; }
+window.closeModal = closeModal;
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+window.toggleSidebar = toggleSidebar;
+
+// Rôles
+const ROLES = {
+  super_admin: { label: 'Super Admin', modules: ['dashboard','chantiers','personnel','materiel','stock'] },
+  direction: { label: 'Direction', modules: ['dashboard','chantiers','personnel','materiel','stock'] },
+  chef_chantier: { label: 'Chef de chantier', modules: ['dashboard','chantiers','personnel','materiel'] },
+  magasinier: { label: 'Magasinier', modules: ['dashboard','stock'] },
+  ouvrier: { label: 'Ouvrier', modules: ['dashboard'] }
+};
+
+const MODULES_DEF = [
+  { id: 'dashboard', label: 'Tableau de bord', icon: '📊' },
+  { id: 'chantiers', label: 'Chantiers', icon: '🏗️' },
+  { id: 'personnel', label: 'Personnel', icon: '👷' },
+  { id: 'materiel', label: 'Matériel', icon: '🚜' },
+  { id: 'stock', label: 'Stock', icon: '📦' }
+];
+
+function canAccess(moduleId) { return currentUser && ROLES[currentUser.role]?.modules.includes(moduleId); }
+
+// ========== FIRESTORE FUNCTIONS ==========
+async function loadCollection(collectionName) {
+  if (!firebaseReady || !db) return [];
+  try {
+    const querySnapshot = await getDocs(collection(db, collectionName));
+    const items = [];
+    querySnapshot.forEach((doc) => {
+      items.push({ id: doc.id, ...doc.data() });
+    });
+    appState[collectionName] = items;
+    return items;
+  } catch (error) {
+    console.error(`Error loading ${collectionName}:`, error);
+    return [];
+  }
+}
+
+async function saveToFirestore(collectionName, data, id = null) {
+  if (!firebaseReady || !db) return false;
+  try {
+    const docId = id || data.id || Date.now().toString();
+    await setDoc(docRef(db, collectionName, docId), { ...data, id: docId });
+    await loadCollection(collectionName);
+    return true;
+  } catch (error) {
+    console.error(`Error saving to ${collectionName}:`, error);
+    toast(`Erreur sauvegarde: ${error.message}`, 'error');
+    return false;
+  }
+}
+
+async function deleteFromFirestore(collectionName, id) {
+  if (!firebaseReady || !db) return false;
+  try {
+    await deleteDoc(docRef(db, collectionName, id));
+    await loadCollection(collectionName);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting from ${collectionName}:`, error);
+    return false;
+  }
+}
+
+async function loadAllData() {
+  await loadCollection('chantiers');
+  await loadCollection('personnel');
+  await loadCollection('materiel');
+  await loadCollection('stock');
+  await loadCollection('consoHeures');
+  await loadCollection('consoCarburant');
+  await loadCollection('consoMateriaux');
+  
+  // Vérifier si les collections sont vides et les initialiser
+  if (appState.chantiers.length === 0) {
+    for (let item of DEFAULT_DATA.chantiers) {
+      await saveToFirestore('chantiers', item, item.id);
+    }
+  }
+  if (appState.personnel.length === 0) {
+    for (let item of DEFAULT_DATA.personnel) {
+      await saveToFirestore('personnel', item, item.id);
+    }
+  }
+  if (appState.materiel.length === 0) {
+    for (let item of DEFAULT_DATA.materiel) {
+      await saveToFirestore('materiel', item, item.id);
+    }
+  }
+  if (appState.stock.length === 0) {
+    for (let item of DEFAULT_DATA.stock) {
+      await saveToFirestore('stock', item, item.id);
+    }
+  }
+}
+
+// Calculs budgétaires
+function calculerCoutReelChantier(chantierId) {
+  const coutHROuvriers = (appState.consoHeures || []).filter(c => c.chantierId === chantierId).reduce((sum, c) => sum + (c.cout || 0), 0);
+  const coutCarburant = (appState.consoCarburant || []).filter(c => c.chantierId === chantierId).reduce((sum, c) => sum + (c.cout || 0), 0);
+  const coutMateriaux = (appState.consoMateriaux || []).filter(c => c.chantierId === chantierId).reduce((sum, c) => sum + (c.cout || 0), 0);
+  return { mainOeuvre: coutHROuvriers, carburant: coutCarburant, materiaux: coutMateriaux, total: coutHROuvriers + coutCarburant + coutMateriaux };
+}
+
+function getBudgetStatus(chantier) {
+  const coutReel = calculerCoutReelChantier(chantier.id);
+  const pourcentage = chantier.budget > 0 ? (coutReel.total / chantier.budget) * 100 : 0;
+  let status = 'ok', message = '';
+  if (pourcentage >= 95) { status = 'danger'; message = `⚠️ ${pourcentage.toFixed(1)}% du budget consommé !`; }
+  else if (pourcentage >= 80) { status = 'warning'; message = `⚠️ ${pourcentage.toFixed(1)}% consommé`; }
+  else { message = `✅ ${pourcentage.toFixed(1)}% consommé`; }
+  return { ...coutReel, pourcentage, status, message };
+}
+
+// Navigation
+function renderSidebar() {
+  const nav = document.getElementById('sidebarNav');
+  if (!currentUser) return;
+  const allowed = ROLES[currentUser.role]?.modules || [];
+  let html = '<div class="nav-section-title">Modules</div>';
+  MODULES_DEF.filter(m => allowed.includes(m.id)).forEach(m => {
+    html += `<div class="nav-item ${m.id === currentModule ? 'active' : ''}" onclick="window.navigate('${m.id}')">
+      <span class="nav-icon">${m.icon}</span><span>${m.label}</span>
+    </div>`;
+  });
+  nav.innerHTML = html;
+}
+
+async function navigate(moduleId) {
+  if (!canAccess(moduleId)) { toast('Accès refusé', 'error'); return; }
+  currentModule = moduleId;
+  const mod = MODULES_DEF.find(m => m.id === moduleId);
+  document.getElementById('topbarTitle').textContent = mod.label.toUpperCase();
+  renderSidebar();
+  if (window.innerWidth < 900) document.getElementById('sidebar').classList.remove('toggle');
+  
+  if (moduleId === 'dashboard') {
+    const chantiersActifs = appState.chantiers.filter(c => c.status === 'en_cours');
+    let budgetTotal = 0, consommeTotal = 0;
+    chantiersActifs.forEach(c => { const s = getBudgetStatus(c); budgetTotal += c.budget; consommeTotal += s.total; });
+    
+    document.getElementById('content').innerHTML = `
+      <div class="page-header"><div><h1 class="page-title-main">Tableau de bord</h1><div class="page-subtitle">Firestore · ${new Date().toLocaleDateString('fr-FR')}</div></div></div>
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-icon">🏗️</div><div class="kpi-label">Chantiers actifs</div><div class="kpi-value">${chantiersActifs.length}</div></div>
+        <div class="kpi-card"><div class="kpi-icon">👷</div><div class="kpi-label">Personnel</div><div class="kpi-value">${appState.personnel.length}</div></div>
+        <div class="kpi-card ${budgetTotal > 0 && consommeTotal/budgetTotal >= 0.95 ? 'danger' : (budgetTotal > 0 && consommeTotal/budgetTotal >= 0.8 ? 'warning' : 'info')}">
+          <div class="kpi-icon">💰</div><div class="kpi-label">Budget consommé</div><div class="kpi-value">${budgetTotal > 0 ? ((consommeTotal/budgetTotal)*100).toFixed(0) : 0}%</div>
+        </div>
+      </div>
+      <div class="card"><div class="card-header"><div class="card-title">🏗️ Suivi budgétaire des chantiers</div></div><div class="card-body">
+        ${chantiersActifs.map(c => { const s = getBudgetStatus(c); return `<div style="padding:12px; border:1px solid var(--border); border-radius:8px; margin-bottom:10px;">
+          <div class="flex justify-between"><strong>${escapeHtml(c.nom)}</strong><span>${s.pourcentage.toFixed(1)}%</span></div>
+          <div class="text-sm">Budget: ${fmtMAD(c.budget)} | Consommé: ${fmtMAD(s.total)}</div>
+          <div class="progress mt-2"><div class="progress-bar" style="width:${Math.min(100, s.pourcentage)}%; background:${s.pourcentage>=95?'#EF4444':(s.pourcentage>=80?'#F59E0B':'#10B981')}"></div></div>
+          <div class="text-xs ${s.status === 'danger' ? 'text-danger' : (s.status === 'warning' ? 'text-warning' : 'text-success')} mt-1">${s.message}</div>
+          <button class="btn btn-secondary btn-sm mt-2" onclick="window.openBudgetModal('${c.id}')">💰 Ajouter consommation</button>
+        </div>`; }).join('')}
+      </div></div>`;
+  } else if (moduleId === 'chantiers') {
+    document.getElementById('content').innerHTML = `
+      <div class="page-header"><div><h1 class="page-title-main">Chantiers</h1></div></div>
+      <div class="card-grid">${appState.chantiers.map(c => { const s = getBudgetStatus(c); return `<div class="card"><div style="padding:16px"><h3>${escapeHtml(c.nom)}</h3><div>Budget: ${fmtMAD(c.budget)}</div><div>Avancement: ${c.avancement}%</div><div class="progress mt-2"><div class="progress-bar" style="width:${c.avancement}%"></div></div><div class="mt-2 ${s.status === 'danger' ? 'text-danger' : (s.status === 'warning' ? 'text-warning' : 'text-success')}">${s.message}</div></div></div>`; }).join('')}</div>`;
+  } else if (moduleId === 'stock') {
+    document.getElementById('content').innerHTML = `<div class="page-header"><div><h1 class="page-title-main">Stock</h1></div></div><div class="card-grid">${appState.stock.map(s => `<div class="card"><div style="padding:16px"><h3>${escapeHtml(s.designation)}</h3><div>Quantité: ${s.quantite} ${s.unite}</div><div>Prix: ${fmtMAD(s.prixUnitaire)}</div><div class="${s.quantite <= s.seuilAlerte ? 'text-danger' : 'text-success'}">Seuil: ${s.seuilAlerte}</div></div></div>`).join('')}</div>`;
+  } else {
+    document.getElementById('content').innerHTML = `<div class="empty"><div class="empty-icon">🚧</div><div class="empty-title">Module: ${mod.label}</div><div class="text-muted mt-2">Données synchronisées avec Firestore</div></div>`;
+  }
+}
+window.navigate = navigate;
+
+// Ajout de consommation
+async function addConsommation(chantierId, type, data) {
+  const newId = Date.now().toString();
+  let collectionName = '';
+  let consommation = { id: newId, chantierId, ...data, date: new Date().toISOString().slice(0,10) };
+  
+  if (type === 'heures') {
+    const personnel = appState.personnel.find(p => p.id === data.personnelId);
+    consommation.cout = (data.heures || 0) * (personnel?.tauxHoraire || 0);
+    collectionName = 'consoHeures';
+  } else if (type === 'carburant') {
+    consommation.cout = (data.litres || 0) * (data.prixLitre || 15);
+    collectionName = 'consoCarburant';
+  } else if (type === 'materiaux') {
+    const article = appState.stock.find(s => s.id === data.articleId);
+    if (article && data.quantite > article.quantite) { toast('Stock insuffisant', 'error'); return false; }
+    consommation.cout = (data.quantite || 0) * (article?.prixUnitaire || 0);
+    collectionName = 'consoMateriaux';
+    if (article) article.quantite -= data.quantite;
+    await saveToFirestore('stock', article, article.id);
+  }
+  
+  await saveToFirestore(collectionName, consommation, newId);
+  toast(`Consommation ajoutée: ${fmtMAD(consommation.cout)}`, 'success');
+  
+  // Vérifier l'alerte budget
+  const chantier = appState.chantiers.find(c => c.id === chantierId);
+  if (chantier) {
+    const status = getBudgetStatus(chantier);
+    if (status.pourcentage >= 95) {
+      toast(`⚠️ ATTENTION: ${chantier.nom} - ${status.message}`, 'warning');
+    }
+  }
+  await navigate('dashboard');
+  return true;
+}
+
+window.openBudgetModal = (chantierId) => {
+  const chantier = appState.chantiers.find(c => c.id === chantierId);
+  const status = getBudgetStatus(chantier);
+  const personnelChantier = appState.personnel.filter(p => p.chantier === chantierId);
+  const enginsChantier = appState.materiel.filter(m => m.chantier === chantierId);
+  
+  const body = `
+    <div class="mb-4"><h3>${escapeHtml(chantier?.nom)}</h3><div>Budget: ${fmtMAD(chantier?.budget)} | Consommé: ${fmtMAD(status.total)} | ${status.message}</div></div>
+    <div class="form-group"><label class="form-label">👷 Ajouter heures main d'œuvre</label>
+      <select class="form-control" id="selectPersonnel"><option value="">-- Sélectionner --</option>${personnelChantier.map(p => `<option value="${p.id}" data-taux="${p.tauxHoraire}">${escapeHtml(p.nom)} (${fmtMAD(p.tauxHoraire)}/h)</option>`).join('')}</select>
+      <div class="form-row mt-2"><input type="number" id="heuresInput" class="form-control" placeholder="Heures"><button class="btn btn-primary btn-sm" onclick="window.addHeures('${chantierId}')">Ajouter</button></div>
+    </div>
+    <div class="form-group"><label class="form-label">⛽ Ajouter carburant</label>
+      <select class="form-control" id="selectEngin"><option value="">-- Sélectionner --</option>${enginsChantier.map(e => `<option value="${e.id}">${escapeHtml(e.nom)}</option>`).join('')}</select>
+      <div class="form-row mt-2"><input type="number" id="litresInput" class="form-control" placeholder="Litres"><input type="number" id="prixInput" class="form-control" placeholder="Prix/L" value="15"><button class="btn btn-primary btn-sm" onclick="window.addCarburant('${chantierId}')">Ajouter</button></div>
+    </div>
+    <div class="form-group"><label class="form-label">📦 Ajouter matériaux</label>
+      <select class="form-control" id="selectArticle"><option value="">-- Sélectionner --</option>${appState.stock.map(a => `<option value="${a.id}" data-prix="${a.prixUnitaire}">${escapeHtml(a.designation)} (Stock: ${a.quantite} ${a.unite})</option>`).join('')}</select>
+      <div class="form-row mt-2"><input type="number" id="qteInput" class="form-control" placeholder="Quantité"><button class="btn btn-primary btn-sm" onclick="window.addMateriaux('${chantierId}')">Ajouter</button></div>
+    </div>
+  `;
+  openModal(`Suivi budgétaire - ${chantier?.code}`, body, `<button class="btn btn-secondary" onclick="window.closeModal()">Fermer</button>`, 'modal-lg');
+};
+
+window.addHeures = async (chantierId) => {
+  const personnelId = document.getElementById('selectPersonnel')?.value;
+  const heures = parseFloat(document.getElementById('heuresInput')?.value);
+  if (!personnelId || !heures) { toast('Veuillez remplir tous les champs', 'error'); return; }
+  await addConsommation(chantierId, 'heures', { personnelId, heures });
+  closeModal();
+};
+
+window.addCarburant = async (chantierId) => {
+  const enginId = document.getElementById('selectEngin')?.value;
+  const litres = parseFloat(document.getElementById('litresInput')?.value);
+  const prixLitre = parseFloat(document.getElementById('prixInput')?.value);
+  if (!enginId || !litres) { toast('Veuillez remplir tous les champs', 'error'); return; }
+  await addConsommation(chantierId, 'carburant', { enginId, litres, prixLitre });
+  closeModal();
+};
+
+window.addMateriaux = async (chantierId) => {
+  const articleId = document.getElementById('selectArticle')?.value;
+  const quantite = parseFloat(document.getElementById('qteInput')?.value);
+  if (!articleId || !quantite) { toast('Veuillez remplir tous les champs', 'error'); return; }
+  await addConsommation(chantierId, 'materiaux', { articleId, quantite });
+  closeModal();
+};
+
+// Authentification
+async function loginWithFirebase(email, password) {
+  if (!firebaseReady) { toast('Firebase non prêt', 'error'); return false; }
+  try {
+    const userCredential = await window.firebaseSignIn(auth, email, password);
+    await loadAllData();
+    currentUser = { id: userCredential.user.uid, email: email, fullName: email.split('@')[0], role: 'direction' };
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').classList.add('active');
+    document.getElementById('userAvatar').textContent = currentUser.fullName.charAt(0).toUpperCase();
+    document.getElementById('userName').textContent = currentUser.fullName;
+    document.getElementById('userRole').textContent = 'Direction';
+    renderSidebar();
+    navigate('dashboard');
+    toast(`Bienvenue ${currentUser.fullName}`, 'success');
+    return true;
+  } catch (error) {
+    toast('Email ou mot de passe incorrect', 'error');
+    return false;
+  }
+}
+
+async function logout() {
+  if (firebaseReady) await window.firebaseSignOut(auth);
+  currentUser = null;
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+window.logout = logout;
+window.exportAll = () => {
+  const blob = new Blob([JSON.stringify(appState, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `raghay_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast('Données exportées', 'success');
+};
+
+// Thème
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+document.getElementById('themeToggle')?.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  setTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+// Login form
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  await loginWithFirebase(email, password);
+});
+
+// Initialisation
+window.addEventListener('firebase-ready', () => {
+  firebaseReady = true;
+  db = window.firestore;
+  auth = window.firebaseAuth;
+  collection = window.firestoreCollection;
+  docRef = window.firestoreDoc;
+  getDocs = window.firestoreGetDocs;
+  getDoc = window.firestoreGetDoc;
+  setDoc = window.firestoreSetDoc;
+  updateDoc = window.firestoreUpdateDoc;
+  deleteDoc = window.firestoreDeleteDoc;
+  document.getElementById('syncStatusMsg').innerHTML = '✅ Firestore connecté !';
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  setTheme(savedTheme);
+});
+
+// Exposer les fonctions globales
+window.addHeures = addHeures;
+window.addCarburant = addCarburant;
+window.addMateriaux = addMateriaux;
+window.openBudgetModal = openBudgetModal;
+window.calculerCoutReelChantier = calculerCoutReelChantier;
+window.getBudgetStatus = getBudgetStatus;
+</script>
+</body>
+</html>
