@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RAGHAY LITAAMIR BTP — Gestion Chantiers avec Firestore</title>
+<title>RAGHAY LITAAMIR BTP — Gestion Chantiers</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rubik:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -11,14 +11,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
-<!-- Firebase SDKs pour Firestore -->
+<!-- Firebase SDKs -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-analytics.js";
-  import { getFirestore, collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+  import { getFirestore, collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 
-  // Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyAGsae6dtciS39xRnOxg13OWkg44B8GPHU",
     authDomain: "raghay-litaamir.firebaseapp.com",
@@ -29,470 +28,466 @@
     measurementId: "G-YMBZ8FZ1QJ"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  // Expose Firebase services globally
-  window.firestore = db;
-  window.firebaseAuth = auth;
-  window.firestoreCollection = collection;
-  window.firestoreDoc = doc;
-  window.firestoreGetDocs = getDocs;
-  window.firestoreGetDoc = getDoc;
-  window.firestoreSetDoc = setDoc;
-  window.firestoreUpdateDoc = updateDoc;
-  window.firestoreDeleteDoc = deleteDoc;
-  window.firestoreQuery = query;
-  window.firestoreWhere = where;
-  window.firestoreOnSnapshot = onSnapshot;
-  window.firebaseSignIn = signInWithEmailAndPassword;
-  window.firebaseSignOut = signOut;
-  window.firebaseOnAuthStateChanged = onAuthStateChanged;
-
-  // Signal that Firebase is ready
+  window.db = db;
+  window.auth = auth;
+  window.collection = collection;
+  window.doc = doc;
+  window.getDocs = getDocs;
+  window.getDoc = getDoc;
+  window.setDoc = setDoc;
+  window.updateDoc = updateDoc;
+  window.deleteDoc = deleteDoc;
+  window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+  window.signOut = signOut;
+  
   window.firebaseReady = true;
-  window.dispatchEvent(new Event('firebase-ready'));
+  console.log("Firebase initialized");
 </script>
 
 <style>
-/* ============================================================
-   RAGHAY LITAAMIR BTP — Design System
-   ============================================================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
 :root[data-theme="dark"] {
   --bg-primary: #0F1419;
   --bg-secondary: #1A1F2E;
   --bg-tertiary: #242B3D;
-  --bg-elevated: #2D3548;
-  --border: #2D3548;
-  --border-light: #3A435A;
   --text-primary: #F5F6FA;
   --text-secondary: #8B92A8;
-  --text-muted: #5D6578;
-  --shadow: 0 4px 20px rgba(0,0,0,0.4);
-  --shadow-lg: 0 12px 48px rgba(0,0,0,0.6);
-  --glow-orange: 0 0 24px rgba(255,107,0,0.35);
-  --blueprint-grid: rgba(255,107,0,0.04);
+  --border: #2D3548;
+  --accent: #FF6B00;
+  --accent-dark: #CC5500;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
 }
 
 :root[data-theme="light"] {
   --bg-primary: #F5F6F8;
   --bg-secondary: #FFFFFF;
   --bg-tertiary: #F1F3F5;
-  --bg-elevated: #FFFFFF;
-  --border: #E1E5EA;
-  --border-light: #CFD4DB;
   --text-primary: #1A1F2E;
   --text-secondary: #5D6578;
-  --text-muted: #8B92A8;
-  --shadow: 0 2px 12px rgba(15,20,25,0.08);
-  --shadow-lg: 0 8px 32px rgba(15,20,25,0.12);
-  --glow-orange: 0 0 20px rgba(255,107,0,0.25);
-  --blueprint-grid: rgba(255,107,0,0.025);
-}
-
-:root {
+  --border: #E1E5EA;
   --accent: #FF6B00;
-  --accent-hover: #FF8533;
   --accent-dark: #CC5500;
-  --hazard: #FFC107;
-  --hazard-dark: #FFA000;
   --success: #10B981;
   --warning: #F59E0B;
   --danger: #EF4444;
-  --info: #3B82F6;
-  --font-display: 'Bebas Neue', 'Arial Black', sans-serif;
-  --font-body: 'Rubik', -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
-  --radius-sm: 4px;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --sidebar-w: 260px;
-  --header-h: 64px;
-  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html { scroll-behavior: smooth; }
 body {
-  font-family: var(--font-body);
+  font-family: 'Rubik', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 14px;
-  line-height: 1.5;
-  min-height: 100vh;
-  overflow-x: hidden;
-  transition: background var(--transition), color var(--transition);
-  background-image: linear-gradient(var(--blueprint-grid) 1px, transparent 1px), linear-gradient(90deg, var(--blueprint-grid) 1px, transparent 1px);
-  background-size: 40px 40px;
+  transition: all 0.3s;
 }
-::selection { background: var(--accent); color: #fff; }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--bg-secondary); }
-::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 5px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
-/* LOGIN */
+/* Login Screen */
 #loginScreen {
-  position: fixed; inset: 0;
-  display: flex; align-items: center; justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--bg-primary);
-  z-index: 1000; padding: 20px;
+  z-index: 1000;
 }
-#loginScreen::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(circle at 20% 50%, rgba(255,107,0,0.15), transparent 40%), radial-gradient(circle at 80% 80%, rgba(255,193,7,0.08), transparent 40%);
-  pointer-events: none;
-}
-.hazard-stripe {
-  height: 16px;
-  background: repeating-linear-gradient(-45deg, #FFC107 0 24px, #1A1F2E 24px 48px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
+
 .login-box {
-  width: 100%; max-width: 440px;
   background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  position: relative; z-index: 1;
-  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
-@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-.login-header {
-  padding: 40px 32px 24px;
-  text-align: center;
-  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
-  border-bottom: 1px solid var(--border);
-}
+
 .logo-mark {
-  width: 72px; height: 72px;
-  margin: 0 auto 16px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--hazard) 100%);
-  border-radius: var(--radius-lg);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 36px;
-  box-shadow: var(--glow-orange);
-  transform: rotate(-3deg);
+  font-size: 48px;
+  text-align: center;
+  margin-bottom: 20px;
 }
-.brand-title { font-family: var(--font-display); font-size: 28px; letter-spacing: 2px; color: var(--text-primary); line-height: 1; margin-bottom: 4px; }
-.brand-subtitle { font-size: 11px; letter-spacing: 3px; color: var(--accent); font-weight: 600; text-transform: uppercase; }
-.login-body { padding: 32px; }
-.form-group { margin-bottom: 18px; }
+
+.brand-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
 .form-label {
   display: block;
-  font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
 }
+
 .form-control {
-  width: 100%; padding: 12px 14px;
+  width: 100%;
+  padding: 12px;
   background: var(--bg-primary);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 8px;
   color: var(--text-primary);
-  font-family: var(--font-body); font-size: 14px;
-  transition: all var(--transition);
+  font-size: 14px;
 }
-.form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,107,0,0.15); }
-.form-control::placeholder { color: var(--text-muted); }
-select.form-control { cursor: pointer; }
-textarea.form-control { resize: vertical; min-height: 80px; }
-.btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  gap: 8px; padding: 12px 20px;
-  border: none; border-radius: var(--radius);
-  font-family: var(--font-body); font-weight: 600; font-size: 13px; letter-spacing: 0.5px;
-  cursor: pointer; transition: all var(--transition);
-  text-transform: uppercase; white-space: nowrap;
-}
-.btn-primary { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%); color: #fff; box-shadow: 0 4px 14px rgba(255,107,0,0.3); }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,107,0,0.45); }
-.btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
-.btn-secondary:hover { background: var(--bg-elevated); border-color: var(--accent); }
-.btn-danger { background: var(--danger); color: #fff; }
-.btn-danger:hover { background: #DC2626; transform: translateY(-1px); }
-.btn-success { background: var(--success); color: #fff; }
-.btn-sm { padding: 6px 12px; font-size: 11px; }
-.btn-block { width: 100%; }
-.login-footer { padding: 16px 32px; background: var(--bg-tertiary); border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); text-align: center; letter-spacing: 0.5px; }
-.login-hint {
-  margin-top: 14px; padding: 10px 12px;
-  background: rgba(255,107,0,0.08);
-  border: 1px dashed rgba(255,107,0,0.3);
-  border-radius: var(--radius);
-  font-size: 11px; color: var(--text-secondary);
-  font-family: var(--font-mono); line-height: 1.6;
-}
-.sync-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  padding: 4px 10px;
-  background: rgba(16,185,129,0.15);
-  border-radius: 20px;
-  color: var(--success);
-}
-.sync-status.syncing { background: rgba(245,158,11,0.15); color: var(--warning); }
-.sync-status.error { background: rgba(239,68,68,0.15); color: var(--danger); }
 
-/* APP SHELL */
-#app { display: none; min-height: 100vh; }
-#app.active { display: block; }
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  width: 100%;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.login-hint {
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(255,107,0,0.1);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* App Layout */
+#app {
+  display: none;
+}
+
+#app.active {
+  display: block;
+}
+
 .sidebar {
-  position: fixed; left: 0; top: 0; bottom: 0;
-  width: var(--sidebar-w);
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 260px;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  z-index: 100;
-  transition: transform var(--transition);
+  padding: 20px;
 }
-.sidebar-header { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
-.sidebar-logo {
-  width: 40px; height: 40px;
-  background: linear-gradient(135deg, var(--accent), var(--hazard));
-  border-radius: var(--radius);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; flex-shrink: 0;
-  box-shadow: var(--glow-orange);
-}
-.sidebar-brand { font-family: var(--font-display); font-size: 18px; letter-spacing: 1.5px; line-height: 1; color: var(--text-primary); }
-.sidebar-brand small { display: block; font-family: var(--font-body); font-size: 9px; letter-spacing: 2px; color: var(--accent); font-weight: 700; margin-top: 3px; }
-.sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
-.nav-section-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); padding: 12px 12px 6px; font-weight: 700; }
-.nav-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 11px 14px;
-  color: var(--text-secondary);
-  border-radius: var(--radius);
-  cursor: pointer; font-size: 13px; font-weight: 500;
-  transition: all var(--transition);
-  margin-bottom: 2px;
-  border-left: 3px solid transparent;
-}
-.nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-.nav-item.active {
-  background: linear-gradient(90deg, rgba(255,107,0,0.15), transparent);
-  color: var(--accent);
-  border-left-color: var(--accent);
-  font-weight: 600;
-}
-.nav-icon { font-size: 18px; width: 24px; text-align: center; }
-.nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
-.sidebar-footer { padding: 14px; border-top: 1px solid var(--border); background: var(--bg-tertiary); }
-.user-chip { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--radius); }
-.user-avatar {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--hazard));
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; color: #fff; font-size: 14px; flex-shrink: 0;
-}
-.user-info { flex: 1; min-width: 0; }
-.user-name { font-weight: 600; font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-role { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
 
-/* MAIN */
-.main { margin-left: var(--sidebar-w); min-height: 100vh; display: flex; flex-direction: column; }
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-logo {
+  font-size: 32px;
+}
+
+.sidebar-brand {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.3s;
+}
+
+.nav-item:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: rgba(255,107,0,0.15);
+  color: var(--accent);
+}
+
+.main {
+  margin-left: 260px;
+}
+
 .topbar {
-  height: var(--header-h);
+  height: 64px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
-  display: flex; align-items: center;
-  padding: 0 24px; gap: 16px;
-  position: sticky; top: 0; z-index: 50;
-  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
 }
-.topbar-title { font-family: var(--font-display); font-size: 24px; letter-spacing: 2px; flex: 1; display: flex; align-items: center; gap: 14px; }
-.topbar-title::before { content: ''; width: 4px; height: 24px; background: var(--accent); border-radius: 2px; }
-.topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+.topbar-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .icon-btn {
-  width: 38px; height: 38px;
-  border-radius: var(--radius);
+  width: 38px;
+  height: 38px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
-  color: var(--text-secondary);
+  border-radius: 8px;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px;
-  transition: all var(--transition);
+  font-size: 18px;
 }
-.icon-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); transform: translateY(-2px); }
-.content { flex: 1; padding: 24px; max-width: 1600px; width: 100%; margin: 0 auto; }
 
-/* CARDS */
-.card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; }
-.card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.card-title { font-family: var(--font-display); font-size: 18px; letter-spacing: 1.5px; display: flex; align-items: center; gap: 10px; }
-.card-body { padding: 20px; }
-.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-.search-box { flex: 1; min-width: 200px; position: relative; }
-.search-box input {
-  width: 100%; padding: 10px 14px 10px 38px;
+.content {
+  padding: 24px;
+}
+
+/* Cards */
+.card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-primary);
-  font-family: var(--font-body); font-size: 13px;
-  transition: all var(--transition);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
 }
-.search-box input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,107,0,0.15); }
-.search-box::before { content: '🔍'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; opacity: 0.6; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.data-table th {
-  background: var(--bg-tertiary);
-  padding: 12px 14px; text-align: left;
-  font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--text-secondary); font-weight: 700;
-  border-bottom: 2px solid var(--accent);
-  white-space: nowrap;
+
+.card-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
-.data-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-primary); vertical-align: middle; }
-.data-table tbody tr { transition: background var(--transition); }
-.data-table tbody tr:hover { background: var(--bg-tertiary); }
-.data-table .actions { display: flex; gap: 6px; justify-content: flex-end; }
-.action-btn {
-  width: 30px; height: 30px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 13px;
-  transition: all var(--transition);
-  color: var(--text-secondary);
+
+.card-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
 }
-.action-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); transform: translateY(-1px); }
-.action-btn.danger:hover { background: var(--danger); border-color: var(--danger); }
-.table-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
 
-/* BADGES */
-.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border: 1px solid transparent; }
-.badge-success { background: rgba(16,185,129,0.15); color: var(--success); border-color: rgba(16,185,129,0.3); }
-.badge-warning { background: rgba(245,158,11,0.15); color: var(--warning); border-color: rgba(245,158,11,0.3); }
-.badge-danger  { background: rgba(239,68,68,0.15); color: var(--danger); border-color: rgba(239,68,68,0.3); }
-.badge-info    { background: rgba(59,130,246,0.15); color: var(--info); border-color: rgba(59,130,246,0.3); }
-.badge-accent  { background: rgba(255,107,0,0.15); color: var(--accent); border-color: rgba(255,107,0,0.3); }
-.badge-neutral { background: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border); }
-
-/* PROGRESS */
-.progress { height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden; position: relative; }
-.progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--hazard)); transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); border-radius: 4px; }
-
-/* EMPTY */
-.empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-.empty-icon { font-size: 56px; opacity: 0.4; margin-bottom: 12px; }
-.empty-title { font-family: var(--font-display); font-size: 20px; letter-spacing: 1.5px; color: var(--text-secondary); margin-bottom: 6px; }
-
-/* MODAL */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(6px);
-  display: none;
-  align-items: center; justify-content: center;
-  z-index: 200; padding: 20px;
-  animation: fadeIn 0.2s;
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
-.modal-overlay.active { display: flex; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.modal {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  width: 100%; max-width: 640px;
-  max-height: 90vh;
-  display: flex; flex-direction: column;
-  box-shadow: var(--shadow-lg);
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-}
-.modal-lg { max-width: 900px; }
-.modal-xl { max-width: 1100px; }
-.modal-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary)); }
-.modal-title { font-family: var(--font-display); font-size: 20px; letter-spacing: 1.5px; }
-.modal-close { width: 32px; height: 32px; border-radius: var(--radius-sm); background: transparent; border: none; cursor: pointer; color: var(--text-secondary); font-size: 20px; transition: all var(--transition); }
-.modal-close:hover { background: var(--danger); color: #fff; }
-.modal-body { padding: 22px; overflow-y: auto; flex: 1; }
-.modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; background: var(--bg-tertiary); }
-.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
 
-/* TOAST */
-#toastContainer { position: fixed; bottom: 24px; right: 24px; z-index: 500; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-.toast {
-  min-width: 280px; max-width: 380px;
-  padding: 14px 18px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--accent);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-  color: var(--text-primary);
-  font-size: 13px;
-  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  pointer-events: all;
-  display: flex; align-items: center; gap: 12px;
-}
-.toast.success { border-left-color: var(--success); }
-.toast.error   { border-left-color: var(--danger); }
-.toast.warning { border-left-color: var(--warning); }
-.toast-icon { font-size: 20px; }
-@keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-/* KPI */
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .kpi-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
   padding: 20px;
-  position: relative; overflow: hidden;
-  transition: all var(--transition);
+  position: relative;
 }
-.kpi-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); }
-.kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
-.kpi-card.success::before { background: var(--success); }
-.kpi-card.warning::before { background: var(--warning); }
-.kpi-card.danger::before { background: var(--danger); }
-.kpi-card.info::before { background: var(--info); }
-.kpi-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; }
-.kpi-value { font-family: var(--font-display); font-size: 36px; letter-spacing: 1px; line-height: 1; color: var(--text-primary); margin-bottom: 6px; }
-.kpi-trend { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
-.kpi-icon { position: absolute; right: 16px; top: 16px; font-size: 28px; opacity: 0.25; }
 
-/* PAGE HEADER */
-.page-header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; }
-.page-title-main { font-family: var(--font-display); font-size: 32px; letter-spacing: 2px; line-height: 1; margin-bottom: 4px; }
-.page-subtitle { color: var(--text-secondary); font-size: 13px; }
-
-/* RESPONSIVE */
-@media (max-width: 900px) {
-  .sidebar { transform: translateX(-100%); box-shadow: var(--shadow-lg); }
-  .sidebar.open { transform: translateX(0); }
-  .main { margin-left: 0; }
-  .content { padding: 16px; }
-  .kpi-value { font-size: 28px; }
-  .page-title-main { font-size: 24px; }
-  .topbar-title { font-size: 18px; }
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent);
+  border-radius: 4px 0 0 4px;
 }
-.mobile-toggle { display: none; }
-@media (max-width: 900px) { .mobile-toggle { display: flex; } }
 
-/* PRINT */
-@media print {
-  body { background: #fff !important; }
-  .sidebar, .topbar, .no-print, #toastContainer { display: none !important; }
-  .main { margin-left: 0; }
-  .content { padding: 0; max-width: none; }
-  * { background-image: none !important; }
+.kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
 }
+
+.kpi-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+}
+
+.progress {
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #FF8533);
+  transition: width 0.3s;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-success {
+  background: rgba(16,185,129,0.15);
+  color: var(--success);
+}
+
+.badge-warning {
+  background: rgba(245,158,11,0.15);
+  color: var(--warning);
+}
+
+.badge-danger {
+  background: rgba(239,68,68,0.15);
+  color: var(--danger);
+}
+
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+/* Toast */
+#toastContainer {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 3000;
+}
+
+.toast {
+  background: var(--bg-secondary);
+  border-left: 4px solid var(--accent);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  animation: slideIn 0.3s;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Utilities */
+.flex { display: flex; }
+.justify-between { justify-content: space-between; }
+.items-center { align-items: center; }
+.gap-2 { gap: 8px; }
+.mt-2 { margin-top: 8px; }
+.mb-2 { margin-bottom: 8px; }
+.text-center { text-align: center; }
+.text-sm { font-size: 12px; }
+.text-danger { color: var(--danger); }
+.text-warning { color: var(--warning); }
+.text-success { color: var(--success); }
+.font-bold { font-weight: 700; }
+.w-full { width: 100%; }
 </style>
 </head>
 <body>
@@ -500,78 +495,78 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 <!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-box">
-    <div class="hazard-stripe"></div>
-    <div class="login-header">
-      <div class="logo-mark">🏗️</div>
-      <div class="brand-title">RAGHAY LITAAMIR</div>
-      <div class="brand-subtitle">· BTP · Gestion Chantiers ·</div>
-    </div>
-    <div class="login-body">
-      <form id="loginForm">
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input type="email" id="loginEmail" class="form-control" placeholder="ex: admin@raghay.com" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Mot de passe</label>
-          <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">🔓 CONNEXION AVEC FIRESTORE</button>
-        <div class="login-hint">
-          <strong>⚠️ Authentification Firebase :</strong><br>
-          Contactez l'administrateur pour créer votre compte.<br>
-          <span id="syncStatusMsg" style="color: var(--accent);">🔄 Connexion à Firestore en cours...</span>
-        </div>
-      </form>
-    </div>
-    <div class="login-footer">© 2026 RAGHAY LITAAMIR BTP · v2.0 · Synchronisé avec Firestore ☁️</div>
-    <div class="hazard-stripe"></div>
+    <div class="logo-mark">🏗️</div>
+    <div class="brand-title">RAGHAY LITAAMIR</div>
+    <div style="text-align: center; font-size: 12px; color: var(--accent); margin-bottom: 30px;">BTP · Gestion Chantiers</div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="loginEmail" class="form-control" placeholder="admin@raghay.com" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary">🔓 CONNEXION</button>
+      <div class="login-hint">
+        <strong>⚠️ Comptes de démonstration :</strong><br>
+        Créez d'abord un utilisateur dans Firebase Console → Authentication<br>
+        Ex: admin@raghay.com / admin123
+      </div>
+    </form>
   </div>
 </div>
 
 <!-- APP -->
 <div id="app">
-  <aside class="sidebar" id="sidebar">
+  <div class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">🏗️</div>
-      <div>
-        <div class="sidebar-brand">RAGHAY LITAAMIR<small>· BTP ·</small></div>
-      </div>
+      <div class="sidebar-brand">RAGHAY LITAAMIR<br><small style="font-size: 10px;">BTP</small></div>
     </div>
-    <nav class="sidebar-nav" id="sidebarNav"></nav>
-    <div class="sidebar-footer">
-      <div class="user-chip">
-        <div class="user-avatar" id="userAvatar">?</div>
-        <div class="user-info">
-          <div class="user-name" id="userName">—</div>
-          <div class="user-role" id="userRole">—</div>
+    <nav id="sidebarNav">
+      <div class="nav-item active" onclick="navigate('dashboard')">
+        <span>📊</span> Tableau de bord
+      </div>
+      <div class="nav-item" onclick="navigate('chantiers')">
+        <span>🏗️</span> Chantiers
+      </div>
+      <div class="nav-item" onclick="navigate('stock')">
+        <span>📦</span> Stock
+      </div>
+    </nav>
+    <div style="position: absolute; bottom: 20px; left: 20px; right: 20px;">
+      <div class="user-chip" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
+        <div class="user-avatar" id="userAvatar" style="width: 40px; height: 40px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center;">👤</div>
+        <div>
+          <div id="userName" style="font-weight: 600;">—</div>
+          <div id="userRole" style="font-size: 11px; color: var(--accent);">—</div>
         </div>
       </div>
     </div>
-  </aside>
+  </div>
 
   <div class="main">
-    <header class="topbar">
-      <button class="icon-btn mobile-toggle" onclick="window.toggleSidebar?.()">☰</button>
-      <div class="topbar-title" id="topbarTitle">DASHBOARD</div>
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">TABLEAU DE BORD</div>
       <div class="topbar-actions">
-        <span class="sync-status" id="syncStatus">☁️ Firestore</span>
-        <button class="icon-btn" id="themeToggle" title="Changer thème">🌙</button>
-        <button class="icon-btn" onclick="window.exportAll?.()" title="Exporter données">💾</button>
-        <button class="icon-btn" onclick="window.logout?.()" title="Déconnexion">🚪</button>
+        <button class="icon-btn" id="themeToggle" onclick="toggleTheme()">🌙</button>
+        <button class="icon-btn" onclick="exportData()">💾</button>
+        <button class="icon-btn" onclick="logout()">🚪</button>
       </div>
-    </header>
-    <main class="content" id="content"></main>
+    </div>
+    <div class="content" id="content"></div>
   </div>
 </div>
 
 <div id="toastContainer"></div>
 
 <div class="modal-overlay" id="modalOverlay">
-  <div class="modal" id="modal">
+  <div class="modal">
     <div class="modal-header">
-      <h3 class="modal-title" id="modalTitle">Modal</h3>
-      <button class="modal-close" onclick="window.closeModal?.()">✕</button>
+      <h3 id="modalTitle">Modal</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer" id="modalFooter"></div>
@@ -579,111 +574,57 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 </div>
 
 <script>
-/* ============================================================
-   RAGHAY LITAAMIR BTP — Firestore Integration
-   ============================================================ */
+// ============================================================
+// APPLICATION PRINCIPALE
+// ============================================================
 
-let firebaseReady = false;
-let db, auth, collection, docRef, getDocs, getDoc, setDoc, updateDoc, deleteDoc;
-
-// Données par défaut
-const DEFAULT_DATA = {
-  chantiers: [
-    { id: "1", code: 'CH-2026-001', nom: 'Construction École Privée - Casablanca', client: 'Ministère Éducation', adresse: 'Bd Zerktouni, Casablanca', gps: '33.5731,-7.5898', budget: 100000, avancement: 35, dateDebut: '2026-01-15', dateFin: '2026-06-30', status: 'en_cours', chefChantier: 'Said Bennani' },
-    { id: "2", code: 'CH-2026-002', nom: 'Villa Palmeraie - Marrakech', client: 'Particulier - M. Tazi', adresse: 'Palmeraie, Marrakech', gps: '31.6295,-7.9811', budget: 2800000, avancement: 30, dateDebut: '2026-02-20', dateFin: '2026-11-15', status: 'en_cours', chefChantier: 'Loukrimi Hassan' },
-    { id: "3", code: 'CH-2026-003', nom: 'Pont routier RN1 - Rabat', client: 'Ministère Équipement', adresse: 'RN1 km 45, Rabat', gps: '34.0209,-6.8416', budget: 12000000, avancement: 10, dateDebut: '2026-03-01', dateFin: '2027-06-30', status: 'en_cours', chefChantier: 'Dahbi Youssef' }
-  ],
-  personnel: [
-    { id: "1", matricule: 'LIT-001', nom: 'Said Bennani', poste: 'Chef de chantier', telephone: '0661234567', chantier: "1", tauxHoraire: 85 },
-    { id: "2", matricule: 'LIT-002', nom: 'Loukrimi Hassan', poste: 'Chef de chantier', telephone: '0662345678', chantier: "2", tauxHoraire: 80 },
-    { id: "3", matricule: 'LIT-003', nom: 'Dahbi Youssef', poste: 'Chef de chantier', telephone: '0663456789', chantier: "3", tauxHoraire: 90 },
-    { id: "4", matricule: 'LIT-004', nom: 'Oumjoud Karim', poste: 'Maçon qualifié', telephone: '0664567890', chantier: "1", tauxHoraire: 45 },
-    { id: "5", matricule: 'LIT-005', nom: 'Amine Rachidi', poste: 'Conducteur engin', telephone: '0665678901', chantier: "3", tauxHoraire: 60 }
-  ],
-  materiel: [
-    { id: "1", code: 'ENG-001', nom: 'Pelle hydraulique CAT 320', type: 'Engin TP', chantier: "3", status: 'operationnel', valeur: 850000 },
-    { id: "2", code: 'ENG-002', nom: 'Bétonnière 350L', type: 'Bétonnage', chantier: "1", status: 'operationnel', valeur: 45000 }
-  ],
-  stock: [
-    { id: "1", code: 'MAT-CIM-001', designation: 'Ciment CPJ 45 (sac 50kg)', categorie: 'Liants', unite: 'sac', quantite: 450, seuilAlerte: 100, prixUnitaire: 85 },
-    { id: "2", code: 'MAT-FER-001', designation: 'Fer à béton Ø12', categorie: 'Aciers', unite: 'barre', quantite: 280, seuilAlerte: 50, prixUnitaire: 95 }
-  ],
-  consoHeures: [],
-  consoCarburant: [],
-  consoMateriaux: []
-};
-
+let currentUser = null;
+let currentModule = 'dashboard';
 let appState = {
   chantiers: [],
-  personnel: [],
-  materiel: [],
   stock: [],
   consoHeures: [],
   consoCarburant: [],
   consoMateriaux: []
 };
 
-let currentUser = null;
-let currentModule = 'dashboard';
-let editingId = null;
-
-// Utilitaires
-function fmt(n) { return new Intl.NumberFormat('fr-FR').format(n || 0); }
-function fmtMAD(n) { return fmt(n) + ' MAD'; }
-function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('fr-FR'); }
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function toast(msg, type='success') {
-  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
-  document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(120%)'; }, 3000);
-  setTimeout(() => el.remove(), 3400);
-}
-function openModal(title, bodyHtml, footerHtml, size='') {
-  document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalBody').innerHTML = bodyHtml;
-  document.getElementById('modalFooter').innerHTML = footerHtml || `<button class="btn btn-secondary" onclick="window.closeModal()">Fermer</button>`;
-  const m = document.getElementById('modal');
-  m.classList.remove('modal-lg','modal-xl');
-  if (size) m.classList.add(size);
-  document.getElementById('modalOverlay').classList.add('active');
-}
-function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); editingId = null; }
-window.closeModal = closeModal;
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-window.toggleSidebar = toggleSidebar;
-
-// Rôles
-const ROLES = {
-  super_admin: { label: 'Super Admin', modules: ['dashboard','chantiers','personnel','materiel','stock'] },
-  direction: { label: 'Direction', modules: ['dashboard','chantiers','personnel','materiel','stock'] },
-  chef_chantier: { label: 'Chef de chantier', modules: ['dashboard','chantiers','personnel','materiel'] },
-  magasinier: { label: 'Magasinier', modules: ['dashboard','stock'] },
-  ouvrier: { label: 'Ouvrier', modules: ['dashboard'] }
-};
-
-const MODULES_DEF = [
-  { id: 'dashboard', label: 'Tableau de bord', icon: '📊' },
-  { id: 'chantiers', label: 'Chantiers', icon: '🏗️' },
-  { id: 'personnel', label: 'Personnel', icon: '👷' },
-  { id: 'materiel', label: 'Matériel', icon: '🚜' },
-  { id: 'stock', label: 'Stock', icon: '📦' }
+// Données par défaut
+const DEFAULT_CHANTIERS = [
+  { id: "1", code: 'CH-001', nom: 'Construction École Privée', budget: 100000, avancement: 35, status: 'en_cours', client: 'Ministère Éducation' },
+  { id: "2", code: 'CH-002', nom: 'Villa Palmeraie', budget: 2800000, avancement: 30, status: 'en_cours', client: 'M. Tazi' }
 ];
 
-function canAccess(moduleId) { return currentUser && ROLES[currentUser.role]?.modules.includes(moduleId); }
+const DEFAULT_STOCK = [
+  { id: "1", code: 'CIM-001', designation: 'Ciment CPJ 45', quantite: 450, unite: 'sac', prixUnitaire: 85, seuilAlerte: 100 },
+  { id: "2", code: 'FER-001', designation: 'Fer à béton Ø12', quantite: 280, unite: 'barre', prixUnitaire: 95, seuilAlerte: 50 }
+];
 
-// ========== FIRESTORE FUNCTIONS ==========
-async function loadCollection(collectionName) {
-  if (!firebaseReady || !db) return [];
+// Utilitaires
+function toast(msg, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️'}</span> ${msg}`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function fmtMAD(n) {
+  return new Intl.NumberFormat('fr-FR').format(n || 0) + ' MAD';
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+// Charger depuis Firestore
+async function loadFromFirestore(collectionName) {
+  if (!window.firebaseReady || !window.db) return [];
   try {
-    const querySnapshot = await getDocs(collection(db, collectionName));
+    const colRef = collection(window.db, collectionName);
+    const snapshot = await getDocs(colRef);
     const items = [];
-    querySnapshot.forEach((doc) => {
+    snapshot.forEach(doc => {
       items.push({ id: doc.id, ...doc.data() });
     });
     appState[collectionName] = items;
@@ -694,240 +635,230 @@ async function loadCollection(collectionName) {
   }
 }
 
-async function saveToFirestore(collectionName, data, id = null) {
-  if (!firebaseReady || !db) return false;
+async function saveToFirestore(collectionName, data) {
+  if (!window.firebaseReady || !window.db) return false;
   try {
-    const docId = id || data.id || Date.now().toString();
-    await setDoc(docRef(db, collectionName, docId), { ...data, id: docId });
-    await loadCollection(collectionName);
+    const docRef = doc(window.db, collectionName, data.id || Date.now().toString());
+    await setDoc(docRef, { ...data, id: data.id || docRef.id });
+    await loadFromFirestore(collectionName);
     return true;
   } catch (error) {
-    console.error(`Error saving to ${collectionName}:`, error);
-    toast(`Erreur sauvegarde: ${error.message}`, 'error');
+    console.error('Save error:', error);
+    toast('Erreur sauvegarde', 'error');
     return false;
   }
 }
 
-async function deleteFromFirestore(collectionName, id) {
-  if (!firebaseReady || !db) return false;
-  try {
-    await deleteDoc(docRef(db, collectionName, id));
-    await loadCollection(collectionName);
-    return true;
-  } catch (error) {
-    console.error(`Error deleting from ${collectionName}:`, error);
-    return false;
-  }
-}
-
-async function loadAllData() {
-  await loadCollection('chantiers');
-  await loadCollection('personnel');
-  await loadCollection('materiel');
-  await loadCollection('stock');
-  await loadCollection('consoHeures');
-  await loadCollection('consoCarburant');
-  await loadCollection('consoMateriaux');
-  
-  // Vérifier si les collections sont vides et les initialiser
-  if (appState.chantiers.length === 0) {
-    for (let item of DEFAULT_DATA.chantiers) {
-      await saveToFirestore('chantiers', item, item.id);
-    }
-  }
-  if (appState.personnel.length === 0) {
-    for (let item of DEFAULT_DATA.personnel) {
-      await saveToFirestore('personnel', item, item.id);
-    }
-  }
-  if (appState.materiel.length === 0) {
-    for (let item of DEFAULT_DATA.materiel) {
-      await saveToFirestore('materiel', item, item.id);
-    }
-  }
-  if (appState.stock.length === 0) {
-    for (let item of DEFAULT_DATA.stock) {
-      await saveToFirestore('stock', item, item.id);
-    }
-  }
-}
-
-// Calculs budgétaires
+// Calcul budget
 function calculerCoutReelChantier(chantierId) {
-  const coutHROuvriers = (appState.consoHeures || []).filter(c => c.chantierId === chantierId).reduce((sum, c) => sum + (c.cout || 0), 0);
-  const coutCarburant = (appState.consoCarburant || []).filter(c => c.chantierId === chantierId).reduce((sum, c) => sum + (c.cout || 0), 0);
-  const coutMateriaux = (appState.consoMateriaux || []).filter(c => c.chantierId === chantierId).reduce((sum, c) => sum + (c.cout || 0), 0);
-  return { mainOeuvre: coutHROuvriers, carburant: coutCarburant, materiaux: coutMateriaux, total: coutHROuvriers + coutCarburant + coutMateriaux };
-}
-
-function getBudgetStatus(chantier) {
-  const coutReel = calculerCoutReelChantier(chantier.id);
-  const pourcentage = chantier.budget > 0 ? (coutReel.total / chantier.budget) * 100 : 0;
-  let status = 'ok', message = '';
-  if (pourcentage >= 95) { status = 'danger'; message = `⚠️ ${pourcentage.toFixed(1)}% du budget consommé !`; }
-  else if (pourcentage >= 80) { status = 'warning'; message = `⚠️ ${pourcentage.toFixed(1)}% consommé`; }
-  else { message = `✅ ${pourcentage.toFixed(1)}% consommé`; }
-  return { ...coutReel, pourcentage, status, message };
+  const heures = (appState.consoHeures || []).filter(c => c.chantierId === chantierId).reduce((s, c) => s + (c.cout || 0), 0);
+  const carburant = (appState.consoCarburant || []).filter(c => c.chantierId === chantierId).reduce((s, c) => s + (c.cout || 0), 0);
+  const materiaux = (appState.consoMateriaux || []).filter(c => c.chantierId === chantierId).reduce((s, c) => s + (c.cout || 0), 0);
+  return { total: heures + carburant + materiaux, heures, carburant, materiaux };
 }
 
 // Navigation
-function renderSidebar() {
-  const nav = document.getElementById('sidebarNav');
-  if (!currentUser) return;
-  const allowed = ROLES[currentUser.role]?.modules || [];
-  let html = '<div class="nav-section-title">Modules</div>';
-  MODULES_DEF.filter(m => allowed.includes(m.id)).forEach(m => {
-    html += `<div class="nav-item ${m.id === currentModule ? 'active' : ''}" onclick="window.navigate('${m.id}')">
-      <span class="nav-icon">${m.icon}</span><span>${m.label}</span>
-    </div>`;
-  });
-  nav.innerHTML = html;
-}
-
-async function navigate(moduleId) {
-  if (!canAccess(moduleId)) { toast('Accès refusé', 'error'); return; }
-  currentModule = moduleId;
-  const mod = MODULES_DEF.find(m => m.id === moduleId);
-  document.getElementById('topbarTitle').textContent = mod.label.toUpperCase();
-  renderSidebar();
-  if (window.innerWidth < 900) document.getElementById('sidebar').classList.remove('toggle');
+async function navigate(module) {
+  currentModule = module;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  event?.target?.closest('.nav-item')?.classList.add('active');
   
-  if (moduleId === 'dashboard') {
-    const chantiersActifs = appState.chantiers.filter(c => c.status === 'en_cours');
+  const titles = { dashboard: 'TABLEAU DE BORD', chantiers: 'CHANTIERS', stock: 'STOCK' };
+  document.getElementById('topbarTitle').textContent = titles[module] || 'DASHBOARD';
+  
+  if (module === 'dashboard') {
+    await loadFromFirestore('chantiers');
+    await loadFromFirestore('consoHeures');
+    await loadFromFirestore('consoCarburant');
+    await loadFromFirestore('consoMateriaux');
+    
     let budgetTotal = 0, consommeTotal = 0;
-    chantiersActifs.forEach(c => { const s = getBudgetStatus(c); budgetTotal += c.budget; consommeTotal += s.total; });
+    appState.chantiers.forEach(c => {
+      const cout = calculerCoutReelChantier(c.id);
+      budgetTotal += c.budget;
+      consommeTotal += cout.total;
+    });
     
     document.getElementById('content').innerHTML = `
-      <div class="page-header"><div><h1 class="page-title-main">Tableau de bord</h1><div class="page-subtitle">Firestore · ${new Date().toLocaleDateString('fr-FR')}</div></div></div>
       <div class="kpi-grid">
-        <div class="kpi-card"><div class="kpi-icon">🏗️</div><div class="kpi-label">Chantiers actifs</div><div class="kpi-value">${chantiersActifs.length}</div></div>
-        <div class="kpi-card"><div class="kpi-icon">👷</div><div class="kpi-label">Personnel</div><div class="kpi-value">${appState.personnel.length}</div></div>
-        <div class="kpi-card ${budgetTotal > 0 && consommeTotal/budgetTotal >= 0.95 ? 'danger' : (budgetTotal > 0 && consommeTotal/budgetTotal >= 0.8 ? 'warning' : 'info')}">
-          <div class="kpi-icon">💰</div><div class="kpi-label">Budget consommé</div><div class="kpi-value">${budgetTotal > 0 ? ((consommeTotal/budgetTotal)*100).toFixed(0) : 0}%</div>
+        <div class="kpi-card">
+          <div class="kpi-label">CHANTIERS ACTIFS</div>
+          <div class="kpi-value">${appState.chantiers.filter(c => c.status === 'en_cours').length}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">BUDGET TOTAL</div>
+          <div class="kpi-value">${fmtMAD(budgetTotal)}</div>
+        </div>
+        <div class="kpi-card ${consommeTotal/budgetTotal >= 0.95 ? 'danger' : (consommeTotal/budgetTotal >= 0.8 ? 'warning' : '')}">
+          <div class="kpi-label">CONSOMMÉ</div>
+          <div class="kpi-value">${((consommeTotal/budgetTotal)*100).toFixed(0)}%</div>
         </div>
       </div>
-      <div class="card"><div class="card-header"><div class="card-title">🏗️ Suivi budgétaire des chantiers</div></div><div class="card-body">
-        ${chantiersActifs.map(c => { const s = getBudgetStatus(c); return `<div style="padding:12px; border:1px solid var(--border); border-radius:8px; margin-bottom:10px;">
-          <div class="flex justify-between"><strong>${escapeHtml(c.nom)}</strong><span>${s.pourcentage.toFixed(1)}%</span></div>
-          <div class="text-sm">Budget: ${fmtMAD(c.budget)} | Consommé: ${fmtMAD(s.total)}</div>
-          <div class="progress mt-2"><div class="progress-bar" style="width:${Math.min(100, s.pourcentage)}%; background:${s.pourcentage>=95?'#EF4444':(s.pourcentage>=80?'#F59E0B':'#10B981')}"></div></div>
-          <div class="text-xs ${s.status === 'danger' ? 'text-danger' : (s.status === 'warning' ? 'text-warning' : 'text-success')} mt-1">${s.message}</div>
-          <button class="btn btn-secondary btn-sm mt-2" onclick="window.openBudgetModal('${c.id}')">💰 Ajouter consommation</button>
-        </div>`; }).join('')}
-      </div></div>`;
-  } else if (moduleId === 'chantiers') {
+      <div class="card">
+        <div class="card-header"><div class="card-title">🏗️ SUIVI BUDGÉTAIRE DES CHANTIERS</div></div>
+        ${appState.chantiers.map(c => {
+          const cout = calculerCoutReelChantier(c.id);
+          const pourcentage = (cout.total / c.budget) * 100;
+          let statusClass = '', statusMsg = '';
+          if (pourcentage >= 95) { statusClass = 'text-danger'; statusMsg = '⚠️ Budget critique !'; }
+          else if (pourcentage >= 80) { statusClass = 'text-warning'; statusMsg = '⚠️ Alerte budget'; }
+          else { statusClass = 'text-success'; statusMsg = '✅ Budget maîtrisé'; }
+          
+          return `<div style="margin-bottom: 20px; padding: 16px; border: 1px solid var(--border); border-radius: 12px;">
+            <div class="flex justify-between items-center">
+              <div><strong>${c.nom}</strong><br><small class="text-sm">${c.client}</small></div>
+              <div class="text-right"><span class="${statusClass} font-bold">${pourcentage.toFixed(1)}%</span><br><small>${fmtMAD(cout.total)} / ${fmtMAD(c.budget)}</small></div>
+            </div>
+            <div class="progress"><div class="progress-bar" style="width: ${Math.min(100, pourcentage)}%; background: ${pourcentage>=95?'#EF4444':(pourcentage>=80?'#F59E0B':'#10B981')}"></div></div>
+            <div class="flex justify-between mt-2 text-sm">
+              <span>👷 Main d'œuvre: ${fmtMAD(cout.heures)}</span>
+              <span>⛽ Carburant: ${fmtMAD(cout.carburant)}</span>
+              <span>📦 Matériaux: ${fmtMAD(cout.materiaux)}</span>
+            </div>
+            <div class="${statusClass} text-sm mt-2">${statusMsg}</div>
+            <button class="btn btn-secondary mt-2" style="width: auto; padding: 8px 16px;" onclick="openBudgetModal('${c.id}')">💰 Ajouter consommation</button>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  } 
+  else if (module === 'chantiers') {
+    await loadFromFirestore('chantiers');
     document.getElementById('content').innerHTML = `
-      <div class="page-header"><div><h1 class="page-title-main">Chantiers</h1></div></div>
-      <div class="card-grid">${appState.chantiers.map(c => { const s = getBudgetStatus(c); return `<div class="card"><div style="padding:16px"><h3>${escapeHtml(c.nom)}</h3><div>Budget: ${fmtMAD(c.budget)}</div><div>Avancement: ${c.avancement}%</div><div class="progress mt-2"><div class="progress-bar" style="width:${c.avancement}%"></div></div><div class="mt-2 ${s.status === 'danger' ? 'text-danger' : (s.status === 'warning' ? 'text-warning' : 'text-success')}">${s.message}</div></div></div>`; }).join('')}</div>`;
-  } else if (moduleId === 'stock') {
-    document.getElementById('content').innerHTML = `<div class="page-header"><div><h1 class="page-title-main">Stock</h1></div></div><div class="card-grid">${appState.stock.map(s => `<div class="card"><div style="padding:16px"><h3>${escapeHtml(s.designation)}</h3><div>Quantité: ${s.quantite} ${s.unite}</div><div>Prix: ${fmtMAD(s.prixUnitaire)}</div><div class="${s.quantite <= s.seuilAlerte ? 'text-danger' : 'text-success'}">Seuil: ${s.seuilAlerte}</div></div></div>`).join('')}</div>`;
-  } else {
-    document.getElementById('content').innerHTML = `<div class="empty"><div class="empty-icon">🚧</div><div class="empty-title">Module: ${mod.label}</div><div class="text-muted mt-2">Données synchronisées avec Firestore</div></div>`;
+      <div class="card-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+        ${appState.chantiers.map(c => `
+          <div class="card">
+            <div><strong>${c.nom}</strong></div>
+            <div class="text-sm mt-2">Client: ${c.client}</div>
+            <div class="text-sm">Budget: ${fmtMAD(c.budget)}</div>
+            <div class="text-sm">Avancement: ${c.avancement}%</div>
+            <div class="progress"><div class="progress-bar" style="width: ${c.avancement}%"></div></div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  else if (module === 'stock') {
+    await loadFromFirestore('stock');
+    document.getElementById('content').innerHTML = `
+      <div class="card-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+        ${appState.stock.map(s => `
+          <div class="card">
+            <div><strong>${s.designation}</strong></div>
+            <div class="text-sm mt-2">Code: ${s.code}</div>
+            <div class="text-sm">Quantité: ${s.quantite} ${s.unite}</div>
+            <div class="text-sm">Prix unitaire: ${fmtMAD(s.prixUnitaire)}</div>
+            <div class="${s.quantite <= s.seuilAlerte ? 'text-danger' : 'text-success'} text-sm">Seuil alerte: ${s.seuilAlerte}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 }
-window.navigate = navigate;
 
-// Ajout de consommation
-async function addConsommation(chantierId, type, data) {
-  const newId = Date.now().toString();
-  let collectionName = '';
-  let consommation = { id: newId, chantierId, ...data, date: new Date().toISOString().slice(0,10) };
-  
-  if (type === 'heures') {
-    const personnel = appState.personnel.find(p => p.id === data.personnelId);
-    consommation.cout = (data.heures || 0) * (personnel?.tauxHoraire || 0);
-    collectionName = 'consoHeures';
-  } else if (type === 'carburant') {
-    consommation.cout = (data.litres || 0) * (data.prixLitre || 15);
-    collectionName = 'consoCarburant';
-  } else if (type === 'materiaux') {
-    const article = appState.stock.find(s => s.id === data.articleId);
-    if (article && data.quantite > article.quantite) { toast('Stock insuffisant', 'error'); return false; }
-    consommation.cout = (data.quantite || 0) * (article?.prixUnitaire || 0);
-    collectionName = 'consoMateriaux';
-    if (article) article.quantite -= data.quantite;
-    await saveToFirestore('stock', article, article.id);
-  }
-  
-  await saveToFirestore(collectionName, consommation, newId);
-  toast(`Consommation ajoutée: ${fmtMAD(consommation.cout)}`, 'success');
-  
-  // Vérifier l'alerte budget
-  const chantier = appState.chantiers.find(c => c.id === chantierId);
-  if (chantier) {
-    const status = getBudgetStatus(chantier);
-    if (status.pourcentage >= 95) {
-      toast(`⚠️ ATTENTION: ${chantier.nom} - ${status.message}`, 'warning');
-    }
-  }
-  await navigate('dashboard');
-  return true;
-}
-
+// Modal d'ajout de consommation
 window.openBudgetModal = (chantierId) => {
   const chantier = appState.chantiers.find(c => c.id === chantierId);
-  const status = getBudgetStatus(chantier);
-  const personnelChantier = appState.personnel.filter(p => p.chantier === chantierId);
-  const enginsChantier = appState.materiel.filter(m => m.chantier === chantierId);
-  
   const body = `
-    <div class="mb-4"><h3>${escapeHtml(chantier?.nom)}</h3><div>Budget: ${fmtMAD(chantier?.budget)} | Consommé: ${fmtMAD(status.total)} | ${status.message}</div></div>
-    <div class="form-group"><label class="form-label">👷 Ajouter heures main d'œuvre</label>
-      <select class="form-control" id="selectPersonnel"><option value="">-- Sélectionner --</option>${personnelChantier.map(p => `<option value="${p.id}" data-taux="${p.tauxHoraire}">${escapeHtml(p.nom)} (${fmtMAD(p.tauxHoraire)}/h)</option>`).join('')}</select>
-      <div class="form-row mt-2"><input type="number" id="heuresInput" class="form-control" placeholder="Heures"><button class="btn btn-primary btn-sm" onclick="window.addHeures('${chantierId}')">Ajouter</button></div>
+    <div class="mb-3"><strong>${chantier?.nom}</strong><br>Budget: ${fmtMAD(chantier?.budget)}</div>
+    <div class="form-group">
+      <label class="form-label">👷 Heures main d'œuvre</label>
+      <input type="number" id="heuresInput" class="form-control" placeholder="Nombre d'heures" step="0.5">
+      <input type="number" id="tauxInput" class="form-control mt-2" placeholder="Taux horaire (MAD)" value="50">
+      <button class="btn btn-primary w-full mt-2" onclick="addHeures('${chantierId}')">Ajouter heures</button>
     </div>
-    <div class="form-group"><label class="form-label">⛽ Ajouter carburant</label>
-      <select class="form-control" id="selectEngin"><option value="">-- Sélectionner --</option>${enginsChantier.map(e => `<option value="${e.id}">${escapeHtml(e.nom)}</option>`).join('')}</select>
-      <div class="form-row mt-2"><input type="number" id="litresInput" class="form-control" placeholder="Litres"><input type="number" id="prixInput" class="form-control" placeholder="Prix/L" value="15"><button class="btn btn-primary btn-sm" onclick="window.addCarburant('${chantierId}')">Ajouter</button></div>
+    <div class="form-group mt-3">
+      <label class="form-label">⛽ Carburant</label>
+      <input type="number" id="litresInput" class="form-control" placeholder="Litres" step="0.1">
+      <input type="number" id="prixInput" class="form-control mt-2" placeholder="Prix/L (MAD)" value="15">
+      <button class="btn btn-primary w-full mt-2" onclick="addCarburant('${chantierId}')">Ajouter carburant</button>
     </div>
-    <div class="form-group"><label class="form-label">📦 Ajouter matériaux</label>
-      <select class="form-control" id="selectArticle"><option value="">-- Sélectionner --</option>${appState.stock.map(a => `<option value="${a.id}" data-prix="${a.prixUnitaire}">${escapeHtml(a.designation)} (Stock: ${a.quantite} ${a.unite})</option>`).join('')}</select>
-      <div class="form-row mt-2"><input type="number" id="qteInput" class="form-control" placeholder="Quantité"><button class="btn btn-primary btn-sm" onclick="window.addMateriaux('${chantierId}')">Ajouter</button></div>
+    <div class="form-group mt-3">
+      <label class="form-label">📦 Matériaux</label>
+      <select id="articleSelect" class="form-control">
+        <option value="">-- Sélectionner --</option>
+        ${appState.stock.map(a => `<option value="${a.id}" data-prix="${a.prixUnitaire}" data-unite="${a.unite}" data-qte="${a.quantite}">${a.designation} (${a.quantite} ${a.unite})</option>`).join('')}
+      </select>
+      <input type="number" id="qteInput" class="form-control mt-2" placeholder="Quantité" step="0.01">
+      <button class="btn btn-primary w-full mt-2" onclick="addMateriaux('${chantierId}')">Consommer matériaux</button>
     </div>
   `;
-  openModal(`Suivi budgétaire - ${chantier?.code}`, body, `<button class="btn btn-secondary" onclick="window.closeModal()">Fermer</button>`, 'modal-lg');
+  document.getElementById('modalTitle').textContent = 'Ajouter consommation';
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalFooter').innerHTML = '<button class="btn btn-secondary" onclick="closeModal()">Fermer</button>';
+  document.getElementById('modalOverlay').classList.add('active');
 };
 
 window.addHeures = async (chantierId) => {
-  const personnelId = document.getElementById('selectPersonnel')?.value;
   const heures = parseFloat(document.getElementById('heuresInput')?.value);
-  if (!personnelId || !heures) { toast('Veuillez remplir tous les champs', 'error'); return; }
-  await addConsommation(chantierId, 'heures', { personnelId, heures });
+  const taux = parseFloat(document.getElementById('tauxInput')?.value);
+  if (!heures || heures <= 0) { toast('Entrez un nombre d\'heures valide', 'error'); return; }
+  const cout = heures * taux;
+  const newConso = { id: Date.now().toString(), chantierId, heures, taux, cout, date: new Date().toISOString() };
+  await saveToFirestore('consoHeures', newConso);
+  toast(`Heures ajoutées: ${heures}h - ${fmtMAD(cout)}`, 'success');
   closeModal();
+  await navigate('dashboard');
 };
 
 window.addCarburant = async (chantierId) => {
-  const enginId = document.getElementById('selectEngin')?.value;
   const litres = parseFloat(document.getElementById('litresInput')?.value);
-  const prixLitre = parseFloat(document.getElementById('prixInput')?.value);
-  if (!enginId || !litres) { toast('Veuillez remplir tous les champs', 'error'); return; }
-  await addConsommation(chantierId, 'carburant', { enginId, litres, prixLitre });
+  const prix = parseFloat(document.getElementById('prixInput')?.value);
+  if (!litres || litres <= 0) { toast('Entrez un nombre de litres valide', 'error'); return; }
+  const cout = litres * prix;
+  const newConso = { id: Date.now().toString(), chantierId, litres, prix, cout, date: new Date().toISOString() };
+  await saveToFirestore('consoCarburant', newConso);
+  toast(`Carburant ajouté: ${litres}L - ${fmtMAD(cout)}`, 'success');
   closeModal();
+  await navigate('dashboard');
 };
 
 window.addMateriaux = async (chantierId) => {
-  const articleId = document.getElementById('selectArticle')?.value;
+  const select = document.getElementById('articleSelect');
+  const articleId = select.value;
   const quantite = parseFloat(document.getElementById('qteInput')?.value);
-  if (!articleId || !quantite) { toast('Veuillez remplir tous les champs', 'error'); return; }
-  await addConsommation(chantierId, 'materiaux', { articleId, quantite });
+  if (!articleId || !quantite) { toast('Sélectionnez un article et une quantité', 'error'); return; }
+  const article = appState.stock.find(a => a.id === articleId);
+  if (!article || quantite > article.quantite) { toast('Stock insuffisant', 'error'); return; }
+  const cout = quantite * article.prixUnitaire;
+  article.quantite -= quantite;
+  await saveToFirestore('stock', article);
+  const newConso = { id: Date.now().toString(), chantierId, articleId, quantite, cout, date: new Date().toISOString() };
+  await saveToFirestore('consoMateriaux', newConso);
+  toast(`Matériaux consommés: ${quantite} ${article.unite} - ${fmtMAD(cout)}`, 'success');
   closeModal();
+  await navigate('dashboard');
 };
 
+// Initialisation des données par défaut
+async function initDefaultData() {
+  if (!window.firebaseReady) return;
+  const chantiers = await loadFromFirestore('chantiers');
+  if (chantiers.length === 0) {
+    for (let c of DEFAULT_CHANTIERS) await saveToFirestore('chantiers', c);
+  }
+  const stock = await loadFromFirestore('stock');
+  if (stock.length === 0) {
+    for (let s of DEFAULT_STOCK) await saveToFirestore('stock', s);
+  }
+}
+
 // Authentification
-async function loginWithFirebase(email, password) {
-  if (!firebaseReady) { toast('Firebase non prêt', 'error'); return false; }
+async function login(email, password) {
+  if (!window.firebaseReady || !window.signInWithEmailAndPassword) {
+    toast('Firebase non initialisé', 'error');
+    return false;
+  }
   try {
-    const userCredential = await window.firebaseSignIn(auth, email, password);
-    await loadAllData();
-    currentUser = { id: userCredential.user.uid, email: email, fullName: email.split('@')[0], role: 'direction' };
+    const userCredential = await window.signInWithEmailAndPassword(window.auth, email, password);
+    currentUser = { email: userCredential.user.email, uid: userCredential.user.uid };
+    await initDefaultData();
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').classList.add('active');
-    document.getElementById('userAvatar').textContent = currentUser.fullName.charAt(0).toUpperCase();
-    document.getElementById('userName').textContent = currentUser.fullName;
-    document.getElementById('userRole').textContent = 'Direction';
-    renderSidebar();
-    navigate('dashboard');
-    toast(`Bienvenue ${currentUser.fullName}`, 'success');
+    document.getElementById('userName').textContent = email.split('@')[0];
+    document.getElementById('userRole').textContent = 'Administrateur';
+    toast(`Bienvenue ${email.split('@')[0]}`, 'success');
+    await navigate('dashboard');
     return true;
   } catch (error) {
     toast('Email ou mot de passe incorrect', 'error');
@@ -935,66 +866,65 @@ async function loginWithFirebase(email, password) {
   }
 }
 
-async function logout() {
-  if (firebaseReady) await window.firebaseSignOut(auth);
+window.logout = async () => {
+  if (window.signOut) await window.signOut(window.auth);
   currentUser = null;
   document.getElementById('app').classList.remove('active');
   document.getElementById('loginScreen').style.display = 'flex';
-}
-window.logout = logout;
-window.exportAll = () => {
-  const blob = new Blob([JSON.stringify(appState, null, 2)], {type: 'application/json'});
+};
+
+window.exportData = () => {
+  const data = JSON.stringify(appState, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  a.href = url;
   a.download = `raghay_backup_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
+  URL.revokeObjectURL(url);
   toast('Données exportées', 'success');
 };
 
 // Thème
-function setTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('theme', theme);
-  const btn = document.getElementById('themeToggle');
-  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
-}
-document.getElementById('themeToggle')?.addEventListener('click', () => {
+function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  setTheme(current === 'dark' ? 'light' : 'dark');
+  const newTheme = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '🌙' : '☀️';
+}
+
+// Écouter Firebase
+window.addEventListener('load', () => {
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+  
+  // Attendre Firebase
+  const checkFirebase = setInterval(() => {
+    if (window.firebaseReady) {
+      clearInterval(checkFirebase);
+      console.log('Firebase ready');
+    }
+  }, 500);
 });
 
 // Login form
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
+document.getElementById('loginForm').addEventListener('submit', (e) => {
   e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
+  const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
-  await loginWithFirebase(email, password);
+  login(email, password);
 });
 
-// Initialisation
-window.addEventListener('firebase-ready', () => {
-  firebaseReady = true;
-  db = window.firestore;
-  auth = window.firebaseAuth;
-  collection = window.firestoreCollection;
-  docRef = window.firestoreDoc;
-  getDocs = window.firestoreGetDocs;
-  getDoc = window.firestoreGetDoc;
-  setDoc = window.firestoreSetDoc;
-  updateDoc = window.firestoreUpdateDoc;
-  deleteDoc = window.firestoreDeleteDoc;
-  document.getElementById('syncStatusMsg').innerHTML = '✅ Firestore connecté !';
-  const savedTheme = localStorage.getItem('theme') || 'dark';
-  setTheme(savedTheme);
-});
-
-// Exposer les fonctions globales
+// Exposer globalement
+window.navigate = navigate;
+window.closeModal = closeModal;
 window.addHeures = addHeures;
 window.addCarburant = addCarburant;
 window.addMateriaux = addMateriaux;
 window.openBudgetModal = openBudgetModal;
-window.calculerCoutReelChantier = calculerCoutReelChantier;
-window.getBudgetStatus = getBudgetStatus;
+window.toggleTheme = toggleTheme;
 </script>
 </body>
 </html>
