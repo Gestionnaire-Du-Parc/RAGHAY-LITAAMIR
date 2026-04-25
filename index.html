@@ -10,35 +10,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAGsae6dtciS39xRnOxg13OWkg44B8GPHU",
-  authDomain: "raghay-litaamir.firebaseapp.com",
-  projectId: "raghay-litaamir",
-  storageBucket: "raghay-litaamir.firebasestorage.app",
-  messagingSenderId: "931657612725",
-  appId: "1:931657612725:web:01e01c66299353f1752dfc",
-  measurementId: "G-YMBZ8FZ1QJ"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const STATE_DOC = doc(db, 'app_state', 'main');
-
-// Expose Firestore helpers to global scope
-window._firestoreReady = false;
-window._db = db;
-window._stateDoc = STATE_DOC;
-window._fsGetDoc = getDoc;
-window._fsSetDoc = setDoc;
-
-// Signal readiness
-window.dispatchEvent(new Event('firestore-ready'));
-</script>
+<!-- Firebase 10 compat (works as global script, no import needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 /* ============================================================
    RAGHAY LITAAMIR BTP — Design System
@@ -515,27 +489,17 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 </head>
 <body>
 
-<!-- FIREBASE LOADING SCREEN -->
+<!-- FIREBASE LOADER -->
 <div id="firebaseLoader" style="
   position:fixed;inset:0;z-index:9999;
   background:#0F1419;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
-  font-family:'Rubik',sans-serif;
+  font-family:Rubik,sans-serif;color:#F5F6FA;
 ">
-  <div style="
-    width:72px;height:72px;
-    background:linear-gradient(135deg,#FF6B00,#FFC107);
-    border-radius:12px;
-    display:flex;align-items:center;justify-content:center;
-    font-size:36px;
-    box-shadow:0 0 24px rgba(255,107,0,0.4);
-    transform:rotate(-3deg);
-    animation:pulse 1.5s ease-in-out infinite;
-  ">🏗️</div>
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:3px;color:#F5F6FA;">RAGHAY LITAAMIR</div>
-  <div style="font-size:12px;color:#FF6B00;letter-spacing:2px;text-transform:uppercase;">Connexion à la base de données…</div>
-  <div id="fbLoaderError" style="display:none;color:#EF4444;font-size:12px;margin-top:8px;text-align:center;max-width:320px;"></div>
-  <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}</style>
+  <div style="width:72px;height:72px;background:linear-gradient(135deg,#FF6B00,#FFC107);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 0 24px rgba(255,107,0,.4);transform:rotate(-3deg);animation:fbpulse 1.4s ease-in-out infinite;">🏗️</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;">RAGHAY LITAAMIR</div>
+  <div style="font-size:11px;color:#FF6B00;letter-spacing:2px;text-transform:uppercase;" id="fbLoaderMsg">Connexion à Firestore…</div>
+  <style>@keyframes fbpulse{0%,100%{opacity:1}50%{opacity:.5}}</style>
 </div>
 
 <!-- LOGIN -->
@@ -627,6 +591,20 @@ textarea.form-control { resize: vertical; min-height: 80px; }
    ============================================================ */
 
 const STORAGE_KEY = 'raghay_litaamir_btp_v2';
+
+// ── FIREBASE INIT ──────────────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAGsae6dtciS39xRnOxg13OWkg44B8GPHU",
+  authDomain: "raghay-litaamir.firebaseapp.com",
+  projectId: "raghay-litaamir",
+  storageBucket: "raghay-litaamir.firebasestorage.app",
+  messagingSenderId: "931657612725",
+  appId: "1:931657612725:web:01e01c66299353f1752dfc"
+};
+if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.firestore();
+const STATE_DOC = db.collection('app_state').doc('main');
+// ──────────────────────────────────────────────────────────────
 
 const DEFAULT_USERS = [
   { id: 1, username: 'admin',     password: 'admin123',    fullName: 'Super Administrateur', role: 'super_admin', active: true },
@@ -735,38 +713,33 @@ let currentUser = null;
 let currentModule = 'dashboard';
 let editingId = null;
 
-// ── FIRESTORE STATE MANAGEMENT ──────────────────────────────────
 async function loadState() {
   try {
-    const snap = await window._fsGetDoc(window._stateDoc);
-    if (snap.exists()) {
+    const snap = await STATE_DOC.get();
+    if (snap.exists) {
       state = snap.data();
-      // Migration : ajouter les nouvelles collections si absentes
-      if (!state.consoHeures)    state.consoHeures    = [...SEED.consoHeures];
-      if (!state.consoCarburant) state.consoCarburant = [...SEED.consoCarburant];
-      if (!state.consoMateriaux) state.consoMateriaux = [...SEED.consoMateriaux];
     } else {
       state = initState();
     }
   } catch(e) {
-    console.warn('Firestore load failed, falling back to localStorage:', e);
+    console.warn('Firestore indisponible, fallback localStorage:', e);
     const raw = localStorage.getItem(STORAGE_KEY);
-    state = raw ? JSON.parse(raw) : initState();
+    try { state = raw ? JSON.parse(raw) : initState(); } catch(_) { state = initState(); }
   }
-
-  if (!state.users)         state.users         = [...DEFAULT_USERS];
-  if (!state.chantiers)     state.chantiers     = [...SEED.chantiers];
-  if (!state.personnel)     state.personnel     = [...SEED.personnel];
-  if (!state.materiel)      state.materiel      = [...SEED.materiel];
-  if (!state.stock)         state.stock         = [...SEED.stock];
-  if (!state.planning)      state.planning      = [...SEED.planning];
-  if (!state.devis)         state.devis         = [...SEED.devis];
-  if (!state.securite)      state.securite      = [...SEED.securite];
-  if (!state.consoHeures)   state.consoHeures   = [...SEED.consoHeures];
+  // Garantir toutes les collections
+  if (!state.users)          state.users          = [...DEFAULT_USERS];
+  if (!state.chantiers)      state.chantiers      = [...SEED.chantiers];
+  if (!state.personnel)      state.personnel      = [...SEED.personnel];
+  if (!state.materiel)       state.materiel       = [...SEED.materiel];
+  if (!state.stock)          state.stock          = [...SEED.stock];
+  if (!state.planning)       state.planning       = [...SEED.planning];
+  if (!state.devis)          state.devis          = [...SEED.devis];
+  if (!state.securite)       state.securite       = [...SEED.securite];
+  if (!state.consoHeures)    state.consoHeures    = [...SEED.consoHeures];
   if (!state.consoCarburant) state.consoCarburant = [...SEED.consoCarburant];
   if (!state.consoMateriaux) state.consoMateriaux = [...SEED.consoMateriaux];
-
-  await saveState();
+  // Sync local cache
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(_) {}
 }
 
 function initState() {
@@ -782,15 +755,11 @@ function initState() {
   };
 }
 
-async function saveState() {
-  // localStorage fallback/cache
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
-  // Persist to Firestore
-  try {
-    await window._fsSetDoc(window._stateDoc, state);
-  } catch(e) {
-    console.warn('Firestore save failed (offline?):', e);
-  }
+function saveState() {
+  // Sauvegarde locale immédiate
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(_) {}
+  // Sauvegarde Firestore (asynchrone, fire-and-forget)
+  STATE_DOC.set(state).catch(e => console.warn('Firestore write error:', e));
 }
 function nextId(list) { return list.length ? Math.max(...list.map(x => x.id)) + 1 : 1; }
 
@@ -2601,30 +2570,22 @@ function exportAll() {
   } catch(e) { toast('Erreur export', 'error'); }
 }
 async function init() {
-  // Wait for Firebase module to expose Firestore helpers
-  await new Promise(resolve => {
-    if (window._fsGetDoc) { resolve(); return; }
-    window.addEventListener('firestore-ready', resolve, { once: true });
-    // Safety timeout: if Firebase fails to load in 5s, continue anyway
-    setTimeout(resolve, 5000);
-  });
-
-  await loadState();
+  try {
+    await loadState();
+  } catch(e) {
+    console.error('loadState error:', e);
+    state = initState();
+  }
   setTheme(state.theme || 'dark');
-
-  // Hide Firebase loader
+  // Masquer le loader Firebase
   const loader = document.getElementById('firebaseLoader');
-  if (loader) loader.style.display = 'none';
-
+  if (loader) loader.remove();
   tryAutoLogin();
 }
 init().catch(e => {
-  console.error('init error:', e);
-  const loader = document.getElementById('firebaseLoader');
-  if (loader) {
-    const errEl = document.getElementById('fbLoaderError');
-    if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'Erreur connexion Firebase : ' + e.message; }
-  }
+  const msg = document.getElementById('fbLoaderMsg');
+  if (msg) msg.textContent = 'Erreur Firebase : ' + e.message;
+  console.error('Fatal init error:', e);
 });
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
