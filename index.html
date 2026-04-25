@@ -13,6 +13,7 @@
 <!-- Firebase 10 compat (works as global script, no import needed) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics-compat.js"></script>
 <style>
 /* ============================================================
    RAGHAY LITAAMIR BTP — Design System
@@ -599,10 +600,12 @@ const FIREBASE_CONFIG = {
   projectId: "raghay-litaamir",
   storageBucket: "raghay-litaamir.firebasestorage.app",
   messagingSenderId: "931657612725",
-  appId: "1:931657612725:web:01e01c66299353f1752dfc"
+  appId: "1:931657612725:web:01e01c66299353f1752dfc",
+  measurementId: "G-YMBZ8FZ1QJ"
 };
 if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.firestore();
+const analytics = firebase.analytics();
 const STATE_DOC = db.collection('app_state').doc('main');
 // ──────────────────────────────────────────────────────────────
 
